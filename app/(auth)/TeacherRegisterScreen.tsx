@@ -2,13 +2,13 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { Button } from '../../src/components/ui/Button';
 import { Input } from '../../src/components/ui/Input';
@@ -90,13 +90,14 @@ export default function TeacherRegisterScreen() {
 
     setIsLoading(true);
     try {
+      /*
       await register({
         ...formData,
         role: 'teacher',
         email: formData.email.trim(),
         phone: formData.phone.trim(),
         experience_years: parseInt(formData.experience_years) || 0,
-      });
+      });*/
       Alert.alert('Success', 'Registration successful! Welcome to Elimi Hub.');
     } catch (error: any) {
       Alert.alert('Registration Failed', error.message || 'An error occurred');
@@ -123,53 +124,7 @@ export default function TeacherRegisterScreen() {
         <View style={styles.form}>
           <Text style={styles.sectionTitle}>Personal Information</Text>
           
-          <Input
-            label="Full Name"
-            placeholder="Enter your full name"
-            value={formData.name}
-            onChangeText={(text) => updateField('name', text)}
-            error={errors.name}
-            leftIcon="person-outline"
-          />
-
-          <Input
-            label="Email Address"
-            placeholder="Enter your email"
-            value={formData.email}
-            onChangeText={(text) => updateField('email', text)}
-            error={errors.email}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            leftIcon="mail-outline"
-          />
-
-          <Input
-            label="Phone Number"
-            placeholder="0712345678"
-            value={formData.phone}
-            onChangeText={(text) => updateField('phone', text)}
-            error={errors.phone}
-            keyboardType="phone-pad"
-            leftIcon="call-outline"
-          />
-
-          <Input
-            label="Date of Birth"
-            placeholder="DD/MM/YYYY"
-            value={formData.dob}
-            onChangeText={(text) => updateField('dob', text)}
-            error={errors.dob}
-            leftIcon="calendar-outline"
-          />
-
-          <Input
-            label="Gender"
-            placeholder="Male/Female/Other"
-            value={formData.gender}
-            onChangeText={(text) => updateField('gender', text)}
-            error={errors.gender}
-            leftIcon="male-female-outline"
-          />
+         
 
           <Text style={styles.sectionTitle}>Professional Details</Text>
 

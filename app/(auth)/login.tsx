@@ -1,27 +1,35 @@
-// src/screens/auth/LoginScreen.tsx
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+// (auth)/login.tsx
+import { showError, showSuccess } from "@/src/utils/alerts";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
-} from 'react-native';
-import { Button } from '../../src/components/ui/Button';
-import { Input } from '../../src/components/ui/Input';
-import { colors, fontSize, fontWeight, spacing } from '../../src/constants/theme';
-import { useAuth } from '../../src/contexts/AuthContext';
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { Button } from "../../src/components/ui/Button";
+import { Input } from "../../src/components/ui/Input";
+import {
+  colors,
+  fontSize,
+  fontWeight,
+  spacing,
+} from "../../src/constants/theme";
+import { useAuth } from "../../src/contexts/AuthContext";
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
-  
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
+    {}
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const validateForm = (): boolean => {
@@ -29,16 +37,16 @@ export default function LoginScreen() {
 
     // Email validation
     if (!email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = "Please enter a valid email";
     }
 
     // Password validation
     if (!password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     } else if (password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+      newErrors.password = "Password must be at least 8 characters";
     }
 
     setErrors(newErrors);
@@ -50,10 +58,14 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      await login({ email: email.trim(), password });
+      console.log("Logging in with:", { email: email.trim(), password });
+      var response = await login({ email: email.trim(), password });
+      console.log("Logging in Resp:", { response });
+      showSuccess("Login Successful", `You have logged in successfully ${response.user.first_name}.`);
       // Navigation will be handled by the auth state change
-    } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'Invalid credentials');
+      router.replace('/(tabs)/dashboard');
+    } catch (err: any) {
+      showError("Login Failed", err.message || "Invalid credentials");
     } finally {
       setIsLoading(false);
     }
@@ -61,7 +73,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
       <ScrollView
@@ -71,9 +83,9 @@ export default function LoginScreen() {
         <View style={styles.header}>
           {/* Placeholder for logo */}
           <View style={styles.logoPlaceholder}>
-            <Text style={styles.logoText}>ELIMI HUB</Text>
+            <Text style={styles.logoText}>ELIMU HUB</Text>
           </View>
-          
+
           <Text style={styles.title}>Welcome Back!</Text>
           <Text style={styles.subtitle}>Sign in to continue learning</Text>
         </View>
@@ -99,7 +111,8 @@ export default function LoginScreen() {
             value={password}
             onChangeText={(text: string) => {
               setPassword(text);
-              if (errors.password) setErrors({ ...errors, password: undefined });
+              if (errors.password)
+                setErrors({ ...errors, password: undefined });
             }}
             error={errors.password}
             secureTextEntry
@@ -118,7 +131,10 @@ export default function LoginScreen() {
           <Button
             title="Forgot Password?"
             onPress={() => {
-              Alert.alert('Coming Soon', 'Password recovery feature will be available soon.');
+              Alert.alert(
+                "Coming Soon",
+                "Password recovery feature will be available soon."
+              );
             }}
             fullWidth
             variant="ghost"
@@ -130,7 +146,7 @@ export default function LoginScreen() {
           <Text style={styles.footerText}>Don't have an account? </Text>
           <Button
             title="Sign Up"
-            onPress={() => router.push('/auth/register')}
+            onPress={() => router.push("/(auth)/role-selection" as any)}
             variant="ghost"
             size="small"
           />
@@ -148,28 +164,28 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: spacing.lg,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   header: {
-    alignItems: 'center',
-    marginBottom: spacing['3xl'],
+    alignItems: "center",
+    marginBottom: spacing["3xl"],
   },
   logoPlaceholder: {
     width: 120,
     height: 120,
     borderRadius: 60,
     backgroundColor: colors.primary.yellow,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: spacing.lg,
   },
   logoText: {
-    fontSize: fontSize['2xl'],
+    fontSize: fontSize["2xl"],
     fontWeight: fontWeight.bold,
     color: colors.text.primary,
   },
   title: {
-    fontSize: fontSize['3xl'],
+    fontSize: fontSize["3xl"],
     fontWeight: fontWeight.bold,
     color: colors.text.primary,
     marginBottom: spacing.xs,
@@ -182,9 +198,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: spacing.lg,
   },
   footerText: {

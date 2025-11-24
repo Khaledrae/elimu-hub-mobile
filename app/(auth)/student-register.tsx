@@ -1,100 +1,140 @@
 // src/screens/auth/StudentRegisterScreen.tsx
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import authService from "@/src/services/authService";
+import { Picker } from '@react-native-picker/picker';
+import { useRouter } from "expo-router";
+
+import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
-} from 'react-native';
-import { Button } from '../../src/components/ui/Button';
-import { Input } from '../../src/components/ui/Input';
-import { colors, fontSize, fontWeight, spacing } from '../../src/constants/theme';
-import { useAuth } from '../../src/contexts/AuthContext';
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { Button } from "../../src/components/ui/Button";
+import { Input } from "../../src/components/ui/Input";
+import {
+  colors,
+  fontSize,
+  fontWeight,
+  spacing,
+} from "../../src/constants/theme";
+import { useAuth } from "../../src/contexts/AuthContext";
 
 export default function StudentRegisterScreen() {
   const router = useRouter();
   const { register } = useAuth();
-  
+  const [counties, setCounties] = useState<{ id: number; name: string }[]>([]);
+
+  useEffect(() => {
+    const loadCounties = async () => {
+      try {
+        const data = await authService.getCounties();
+        setCounties(data);
+      } catch (error) {
+        console.log("Failed to load counties:", error);
+      }
+    };
+
+    loadCounties();
+  }, []);
+
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    password_confirmation: '',
-    admission_number: '',
-    grade_level: '',
-    school_name: '',
-    dob: '',
-    gender: '',
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    county: "",
+    password: "",
+    password_confirmation: "",
+    admission_number: "",
+    grade_level: "",
+    school_name: "",
+    dob: "",
+    gender: "",
   });
-  
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const phoneRegex = /^(?:\+254|254|0)([17]\d{8})$/;
 
   const updateField = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
     if (errors[field]) {
-      setErrors({ ...errors, [field]: '' });
+      setErrors({ ...errors, [field]: "" });
     }
   };
-
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Required fields
-    if (!formData.name.trim()) newErrors.name = 'Full name is required';
+    if (!formData.first_name.trim())
+      newErrors.first_name = "First name is required";
+
+    if (!formData.last_name.trim())
+      newErrors.last_name = "Last name is required";
+
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = "Please enter a valid email";
     }
+
     if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^(?:254|\+254|0)?[17]\d{8}$/.test(formData.phone.replace(/\s/g, ''))) {
-      newErrors.phone = 'Please enter a valid Kenyan phone number';
+      newErrors.phone = "Phone number is required";
+    } else if (!phoneRegex.test(formData.phone.replace(/\s/g, ""))) {
+      newErrors.phone = "Invalid Kenyan phone number";
     }
+
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+      newErrors.password = "Password must be at least 8 characters";
     } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = 'Password must contain uppercase, lowercase, and number';
+      newErrors.password =
+        "Password must contain uppercase, lowercase, and a number";
     }
+
     if (formData.password !== formData.password_confirmation) {
-      newErrors.password_confirmation = 'Passwords do not match';
+      newErrors.password_confirmation = "Passwords do not match";
     }
+
     if (!formData.admission_number.trim()) {
-      newErrors.admission_number = 'Admission number is required';
+      newErrors.admission_number = "Admission number is required";
     }
+
     if (!formData.grade_level.trim()) {
-      newErrors.grade_level = 'Grade level is required';
+      newErrors.grade_level = "Grade level is required";
     }
+
+    if (!formData.county) {
+      newErrors.county = "County is required";
+    }
+
     if (!formData.gender) {
-      newErrors.gender = 'Gender is required';
+      newErrors.gender = "Gender is required";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handleRegister = async () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
+
     try {
       await register({
         ...formData,
-        role: 'student',
+        role: "student",
         email: formData.email.trim(),
-        phone: formData.phone.trim(),
+        county: Number(formData.county),
       });
-      Alert.alert('Success', 'Registration successful! Welcome to Elimi Hub.');
+
+      Alert.alert("Success", "Registration successful! Welcome to Elimi Hub.");
     } catch (error: any) {
-      Alert.alert('Registration Failed', error.message || 'An error occurred');
+      Alert.alert("Registration Failed", error.message || "An error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -102,7 +142,7 @@ export default function StudentRegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
       <ScrollView
@@ -117,13 +157,22 @@ export default function StudentRegisterScreen() {
 
         <View style={styles.form}>
           <Text style={styles.sectionTitle}>Personal Information</Text>
-          
+
           <Input
-            label="Full Name"
-            placeholder="Enter your full name"
-            value={formData.name}
-            onChangeText={(text) => updateField('name', text)}
-            error={errors.name}
+            label="First Name"
+            placeholder="Enter first name"
+            value={formData.first_name}
+            onChangeText={(text) => updateField("first_name", text)}
+            error={errors.first_name}
+            leftIcon="person-outline"
+          />
+
+          <Input
+            label="Last Name"
+            placeholder="Enter last name"
+            value={formData.last_name}
+            onChangeText={(text) => updateField("last_name", text)}
+            error={errors.last_name}
             leftIcon="person-outline"
           />
 
@@ -131,7 +180,7 @@ export default function StudentRegisterScreen() {
             label="Email Address"
             placeholder="Enter your email"
             value={formData.email}
-            onChangeText={(text) => updateField('email', text)}
+            onChangeText={(text) => updateField("email", text)}
             error={errors.email}
             keyboardType="email-address"
             autoCapitalize="none"
@@ -142,7 +191,7 @@ export default function StudentRegisterScreen() {
             label="Phone Number"
             placeholder="0712345678"
             value={formData.phone}
-            onChangeText={(text) => updateField('phone', text)}
+            onChangeText={(text) => updateField("phone", text)}
             error={errors.phone}
             keyboardType="phone-pad"
             leftIcon="call-outline"
@@ -152,7 +201,7 @@ export default function StudentRegisterScreen() {
             label="Date of Birth"
             placeholder="DD/MM/YYYY"
             value={formData.dob}
-            onChangeText={(text) => updateField('dob', text)}
+            onChangeText={(text) => updateField("dob", text)}
             error={errors.dob}
             leftIcon="calendar-outline"
           />
@@ -161,10 +210,35 @@ export default function StudentRegisterScreen() {
             label="Gender"
             placeholder="Male/Female/Other"
             value={formData.gender}
-            onChangeText={(text) => updateField('gender', text)}
+            onChangeText={(text) => updateField("gender", text)}
             error={errors.gender}
             leftIcon="male-female-outline"
           />
+          <View style={{ marginBottom: 20 }}>
+            <Text style={{ marginBottom: 5, color: colors.text.primary }}>
+              County
+            </Text>
+
+            <Picker
+              selectedValue={formData.county}
+              onValueChange={(value) => updateField("county", value)}
+              style={{ backgroundColor: "#fff", borderRadius: 8 }}
+            >
+              <Picker.Item label="Select county..." value="" />
+
+              {counties.map((county) => (
+                <Picker.Item
+                  key={county.id}
+                  label={county.name}
+                  value={county.id.toString()}
+                />
+              ))}
+            </Picker>
+
+            {errors.county && (
+              <Text style={{ color: "red" }}>{errors.county}</Text>
+            )}
+          </View>
 
           <Text style={styles.sectionTitle}>Academic Details</Text>
 
@@ -172,7 +246,7 @@ export default function StudentRegisterScreen() {
             label="Admission Number"
             placeholder="Enter your admission number"
             value={formData.admission_number}
-            onChangeText={(text) => updateField('admission_number', text)}
+            onChangeText={(text) => updateField("admission_number", text)}
             error={errors.admission_number}
             leftIcon="card-outline"
           />
@@ -181,7 +255,7 @@ export default function StudentRegisterScreen() {
             label="Grade Level"
             placeholder="e.g., Grade 5"
             value={formData.grade_level}
-            onChangeText={(text) => updateField('grade_level', text)}
+            onChangeText={(text) => updateField("grade_level", text)}
             error={errors.grade_level}
             leftIcon="school-outline"
           />
@@ -190,7 +264,7 @@ export default function StudentRegisterScreen() {
             label="School Name (Optional)"
             placeholder="Enter your school name"
             value={formData.school_name}
-            onChangeText={(text) => updateField('school_name', text)}
+            onChangeText={(text) => updateField("school_name", text)}
             leftIcon="business-outline"
           />
 
@@ -200,7 +274,7 @@ export default function StudentRegisterScreen() {
             label="Password"
             placeholder="Create a strong password"
             value={formData.password}
-            onChangeText={(text) => updateField('password', text)}
+            onChangeText={(text) => updateField("password", text)}
             error={errors.password}
             secureTextEntry
             leftIcon="lock-closed-outline"
@@ -211,7 +285,7 @@ export default function StudentRegisterScreen() {
             label="Confirm Password"
             placeholder="Re-enter your password"
             value={formData.password_confirmation}
-            onChangeText={(text) => updateField('password_confirmation', text)}
+            onChangeText={(text) => updateField("password_confirmation", text)}
             error={errors.password_confirmation}
             secureTextEntry
             leftIcon="lock-closed-outline"
@@ -246,14 +320,14 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: spacing.lg,
-    paddingBottom: spacing['3xl'],
+    paddingBottom: spacing["3xl"],
   },
   header: {
     marginBottom: spacing.xl,
     marginTop: spacing.lg,
   },
   title: {
-    fontSize: fontSize['2xl'],
+    fontSize: fontSize["2xl"],
     fontWeight: fontWeight.bold,
     color: colors.text.primary,
     marginBottom: spacing.xs,

@@ -3,11 +3,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { borderRadius, colors, fontSize, fontWeight, shadows, spacing } from '../../src/constants/theme';
 
@@ -54,7 +54,8 @@ export default function RoleSelectionScreen() {
   const router = useRouter();
 
   const handleRoleSelect = (role: string) => {
-    router.push(`./(auth)/register/${role}`);
+    router.push(`/(auth)/register/${role}` as any);
+
   };
 
   return (
