@@ -1,10 +1,12 @@
 // app/(tabs)/_layout.tsx
+import { AuthGuard } from "@/src/components/auth/AuthGuard";
 import { colors } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 
 export default function TabLayout() {
   return (
+    <AuthGuard requiredRole={['admin', 'teacher', 'parent', 'student']}>
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.primary.yellow,
@@ -68,6 +70,16 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="users"
+        options={{
+          title: "Users",
+          tabBarIcon: ({ size, color }) => (
+            <Ionicons name="people-outline" size={size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
+    </AuthGuard>
   );
 }

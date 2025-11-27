@@ -78,6 +78,7 @@ export const publicApiClient = axios.create({
 });*/
 // src/services/api.ts
 import axios, { AxiosError, AxiosInstance } from "axios";
+import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
@@ -132,7 +133,11 @@ export const publicApiClient = axios.create({
   },
   timeout: 30000,
 });
-
+export interface ApiResponse<T> {
+  data: T;
+  message?: string;
+  status?: string;
+}
 // --------------------------------------------------
 // REQUEST INTERCEPTOR — attach token
 // --------------------------------------------------
@@ -176,6 +181,17 @@ apiClient.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${token}`;
           return apiClient(originalRequest);
         }
+        // Clear stored auth data
+        await storage.remove("auth_token");
+        await storage.remove("user");
+
+        // Redirect to login page
+        // Use setTimeout to avoid potential issues with navigation during render
+        setTimeout(() => {
+          router.replace("/(auth)/login");
+        }, 100);
+
+        return Promise.reject(error);
       } catch (refreshError) {
         // Refresh failed → logout user
         await storage.remove("auth_token");
@@ -191,4 +207,3 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
-  

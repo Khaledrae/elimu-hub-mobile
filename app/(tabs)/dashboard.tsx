@@ -31,6 +31,9 @@ interface DashboardStats {
   lessons: number;
   students?: number;
   teachers?: number;
+  myClasses?: number;
+  myCourses?: number;
+  myLessons?: number;
 }
 
 export default function DashboardScreen() {
@@ -52,21 +55,71 @@ export default function DashboardScreen() {
     try {
       setLoading(true);
 
-      // Fetch data in parallel
-      const [schoolsData, classesData, coursesData, lessonsData] =
-        await Promise.all([
-          schoolService.getAllSchools().catch(() => []),
-          classService.getAllClasses().catch(() => []),
-          courseService.getAllCourses().catch(() => []),
-          lessonService.getAllLessons().catch(() => []),
-        ]);
+      // Role-based data fetching
+      const userRole = user?.role;
+      
+      if (userRole === 'admin') {
+        // Admin sees everything
+        const [schoolsData, classesData, coursesData, lessonsData] =
+          await Promise.all([
+            schoolService.getAllSchools().catch(() => []),
+            classService.getAllClasses().catch(() => []),
+            courseService.getAllCourses().catch(() => []),
+            lessonService.getAllLessons().catch(() => []),
+          ]);
 
-      setStats({
-        schools: schoolsData.length,
-        classes: classesData.length,
-        courses: coursesData.length,
-        lessons: lessonsData.length,
-      });
+        setStats({
+          schools: schoolsData.length,
+          classes: classesData.length,
+          courses: coursesData.length,
+          lessons: lessonsData.length,
+        });
+      } else if (userRole === 'teacher') {
+        // Teacher sees their classes and courses
+        const [classesData, coursesData, lessonsData] =
+          await Promise.all([
+            classService.getAllClasses().catch(() => []), // Would be teacher's classes
+            courseService.getAllCourses().catch(() => []), // Would be teacher's courses
+            lessonService.getAllLessons().catch(() => []), // Would be teacher's lessons
+          ]);
+
+        setStats({
+          schools: 0, // Teachers don't manage schools
+          classes: classesData.length,
+          courses: coursesData.length,
+          lessons: lessonsData.length,
+          myClasses: classesData.length,
+          myCourses: coursesData.length,
+        });
+      } else if (userRole === 'student') {
+        // Student sees their classes and lessons
+        const [classesData, coursesData, lessonsData] =
+          await Promise.all([
+            classService.getAllClasses().catch(() => []), // Would be student's classes
+            courseService.getAllCourses().catch(() => []), // Would be student's courses
+            lessonService.getAllLessons().catch(() => []), // Would be student's lessons
+          ]);
+
+        setStats({
+          schools: 0,
+          classes: 0,
+          courses: coursesData.length,
+          lessons: lessonsData.length,
+          myClasses: classesData.length,
+          myCourses: coursesData.length,
+          myLessons: lessonsData.length,
+        });
+      } else if (userRole === 'parent') {
+        // Parent sees children's progress
+        setStats({
+          schools: 0,
+          classes: 0,
+          courses: 0,
+          lessons: 0,
+          myClasses: 2, // Example: 2 children's classes
+          myCourses: 8, // Example: 8 enrolled courses
+        });
+      }
     } catch (error) {
       console.error("Failed to load dashboard data:", error);
     } finally {
@@ -90,7 +143,125 @@ export default function DashboardScreen() {
     ]);
   };
 
-  // Role-based menu items
+  // Role-based stats cards
+  const getStatsCards = () => {
+    const userRole = user?.role;
+    const cards = [];
+
+    if (userRole === 'admin') {
+      cards.push(
+        {
+          title: "Schools",
+          count: stats.schools,
+          icon: "business-outline",
+          color: colors.primary.yellow,
+        },
+        {
+          title: "Classes",
+          count: stats.classes,
+          icon: "school-outline",
+          color: colors.secondary.green,
+        },
+        {
+          title: "Courses",
+          count: stats.courses,
+          icon: "library-outline",
+          color: colors.status.info,
+        },
+        {
+          title: "Lessons",
+          count: stats.lessons,
+          icon: "book-outline",
+          color: colors.status.warning,
+        }
+      );
+    } else if (userRole === 'teacher') {
+      cards.push(
+        {
+          title: "My Classes",
+          count: stats.myClasses || 0,
+          icon: "school-outline",
+          color: colors.secondary.green,
+        },
+        {
+          title: "My Courses",
+          count: stats.myCourses || 0,
+          icon: "library-outline",
+          color: colors.status.info,
+        },
+        {
+          title: "My Lessons",
+          count: stats.lessons,
+          icon: "book-outline",
+          color: colors.status.warning,
+        },
+        {
+          title: "Students",
+          count: 45, // Would be actual student count
+          icon: "people-outline",
+          color: colors.primary.yellow,
+        }
+      );
+    } else if (userRole === 'student') {
+      cards.push(
+        {
+          title: "My Classes",
+          count: stats.myClasses || 0,
+          icon: "school-outline",
+          color: colors.secondary.green,
+        },
+        {
+          title: "My Courses",
+          count: stats.myCourses || 0,
+          icon: "library-outline",
+          color: colors.status.info,
+        },
+        {
+          title: "My Lessons",
+          count: stats.myLessons || 0,
+          icon: "book-outline",
+          color: colors.status.warning,
+        },
+        {
+          title: "Progress",
+          count: "75%", // Example progress
+          icon: "trending-up-outline",
+          color: colors.primary.yellow,
+        }
+      );
+    } else if (userRole === 'parent') {
+      cards.push(
+        {
+          title: "Children",
+          count: 2, // Number of children
+          icon: "people-outline",
+          color: colors.secondary.green,
+        },
+        {
+          title: "Classes",
+          count: stats.myClasses || 0,
+          icon: "school-outline",
+          color: colors.status.info,
+        },
+        {
+          title: "Courses",
+          count: stats.myCourses || 0,
+          icon: "library-outline",
+          color: colors.status.warning,
+        },
+        {
+          title: "Avg. Progress",
+          count: "82%",
+          icon: "trending-up-outline",
+          color: colors.primary.yellow,
+        }
+      );
+    }
+
+    return cards;
+  };
+
+  // Role-based menu items (your existing function)
   const getMenuItems = () => {
     const baseItems = [
       {
@@ -99,7 +270,7 @@ export default function DashboardScreen() {
         icon: "business-outline",
         color: "#4CAF50",
         route: "/schools",
-        roles: ["admin"], // Only admins can manage schools
+        roles: ["admin"],
       },
       {
         title: "Classes",
@@ -139,7 +310,7 @@ export default function DashboardScreen() {
         icon: "person-outline",
         color: "#F44336",
         route: "/teachers",
-        roles: ["admin"], // Only admins can manage teachers
+        roles: ["admin"],
       },
       {
         title: "My Classes",
@@ -167,7 +338,6 @@ export default function DashboardScreen() {
       },
     ];
 
-    // Filter menu items based on user role
     return baseItems.filter(
       (item) => !item.roles || item.roles.includes(user?.role || "")
     );
@@ -207,7 +377,7 @@ export default function DashboardScreen() {
         style={styles.menuContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Quick Stats */}
+        {/* Role-Based Quick Stats */}
         <View style={styles.statsContainer}>
           <Text style={styles.statsTitle}>Overview</Text>
           {loading ? (
@@ -217,42 +387,17 @@ export default function DashboardScreen() {
             </View>
           ) : (
             <View style={styles.statsGrid}>
-              <View style={styles.statCard}>
-                <Ionicons
-                  name="business-outline"
-                  size={24}
-                  color={colors.primary.yellow}
-                />
-                <Text style={styles.statNumber}>{stats.schools}</Text>
-                <Text style={styles.statLabel}>Schools</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Ionicons
-                  name="school-outline"
-                  size={24}
-                  color={colors.secondary.green}
-                />
-                <Text style={styles.statNumber}>{stats.classes}</Text>
-                <Text style={styles.statLabel}>Classes</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Ionicons
-                  name="library-outline"
-                  size={24}
-                  color={colors.status.info}
-                />
-                <Text style={styles.statNumber}>{stats.courses}</Text>
-                <Text style={styles.statLabel}>Courses</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Ionicons
-                  name="book-outline"
-                  size={24}
-                  color={colors.status.warning}
-                />
-                <Text style={styles.statNumber}>{stats.lessons}</Text>
-                <Text style={styles.statLabel}>Lessons</Text>
-              </View>
+              {getStatsCards().map((stat, index) => (
+                <View key={index} style={styles.statCard}>
+                  <Ionicons
+                    name={stat.icon as any}
+                    size={24}
+                    color={stat.color}
+                  />
+                  <Text style={styles.statNumber}>{stat.count}</Text>
+                  <Text style={styles.statLabel}>{stat.title}</Text>
+                </View>
+              ))}
             </View>
           )}
         </View>
@@ -313,7 +458,6 @@ export default function DashboardScreen() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

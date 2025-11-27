@@ -229,13 +229,36 @@ class AuthService {
   async isAuthenticated(): Promise<boolean> {
     try {
       const token = await storage.get("auth_token");
-      return !!token;
+      
+      // If no token exists, definitely not authenticated
+      if (!token) {
+        return false;
+      }
+
+      // Verify token is valid by calling the /me endpoint
+      try {
+        await this.getMe();
+        return true;
+      } catch (error: any) {
+        // If the API call fails (401/403), token is invalid
+        console.log("Token validation failed:", error);
+        
+        // Clear invalid token
+        await this.clearAuthData();
+        return false;
+      }
     } catch (error) {
       console.warn("Error checking authentication:", error);
       return false;
     }
   }
-
+ /**
+   * Clear all authentication data
+   */
+  async clearAuthData(): Promise<void> {
+    await storage.remove("auth_token");
+    await storage.remove("user");
+  }
   // Helper method to get the JWT token
   async getToken(): Promise<string | null> {
     return await storage.get("auth_token");

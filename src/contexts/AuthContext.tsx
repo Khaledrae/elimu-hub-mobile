@@ -1,6 +1,16 @@
 // src/contexts/AuthContext.tsx
-import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import authService, { LoginData, RegisterData, User } from '../services/authService';
+import React, {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import authService, {
+  LoginData,
+  RegisterData,
+  User,
+} from "../services/authService";
 
 interface AuthContextType {
   user: User | null;
@@ -27,18 +37,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth();
   }, []);
 
+  // const checkAuth = async () => {
+  //   try {
+  //     const authenticated = await authService.isAuthenticated();
+  //     if (authenticated) {
+  //       const currentUser = await authService.getCurrentUser();
+  //       setUser(currentUser);
+  //       setIsAuthenticated(true);
+  //     }
+  //   } catch (error) {
+  //     console.error("Auth check error:", error);
+  //     setUser(null);
+  //     setIsAuthenticated(false);
+  //     //Clear Stale Data
+  //     await authService.clearAuthData();
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
   const checkAuth = async () => {
     try {
+      setIsLoading(true);
       const authenticated = await authService.isAuthenticated();
+      
       if (authenticated) {
+        // Get user from storage (already updated by isAuthenticated)
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
         setIsAuthenticated(true);
+      } else {
+        // Token is invalid or missing
+        setUser(null);
+        setIsAuthenticated(false);
       }
     } catch (error) {
       console.error('Auth check error:', error);
       setUser(null);
       setIsAuthenticated(false);
+      
+      // Clear any stale data
+      await authService.clearAuthData();
     } finally {
       setIsLoading(false);
     }
@@ -71,7 +109,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
       throw error;
     }
   };
@@ -81,7 +119,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const updatedUser = await authService.getMe();
       setUser(updatedUser);
     } catch (error) {
-      console.error('Refresh user error:', error);
+      console.error("Refresh user error:", error);
       throw error;
     }
   };
@@ -106,7 +144,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

@@ -8,13 +8,13 @@ import { Picker } from '@react-native-picker/picker';
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface Manager {
@@ -57,6 +57,7 @@ export default function ClassesScreen() {
       setLoading(true);
       const classesData = await classService.getAllClasses();
       setClasses(classesData);
+      console.log("Loaded classes:", classesData);
     } catch (error: any) {
       console.error("Failed to load classes:", error);
       showError("Error", "Failed to load classes");

@@ -43,9 +43,14 @@ class CourseService {
   async getAllCourses(): Promise<Course[]> {
     const response = await apiClient.get<Course[] | ApiResponse<Course[]>>('/courses');
     console.log("CourseService.getAllCourses response:", response.data);
-    return response.data.data;
+    
+    if (Array.isArray(response.data)) {
+      return response.data; 
+    } else if (response.data && 'data' in response.data && Array.isArray(response.data.data)) {
+      return response.data.data;
+    }
+    return []; // Always return an array
   }
-
   async getCourse(id: number): Promise<Course> {
     const response = await apiClient.get<Course>(`/courses/${id}`);
     return response.data;
