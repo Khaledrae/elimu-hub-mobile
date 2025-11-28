@@ -133,7 +133,7 @@ export const publicApiClient = axios.create({
   },
   timeout: 30000,
 });
-export interface ApiResponse<T> {
+export interface ApiResponse<T= any> {
   data: T;
   message?: string;
   status?: string;

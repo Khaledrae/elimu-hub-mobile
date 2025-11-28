@@ -7,6 +7,7 @@ export interface Lesson {
   class_id: number;
   teacher_id?: number;
   title: string;
+  content_type?: string;
   content?: string;
   video_url?: string;
   document_path?: string;
@@ -87,9 +88,20 @@ class LessonService {
   }
 
   async getLesson(id: number): Promise<Lesson> {
-    const response = await apiClient.get<Lesson>(`/lessons/${id}`);
-    return response.data;
-  }
+    try {
+        const response = await apiClient.get<Lesson | ApiResponse<Lesson>>(`/lessons/${id}`);
+        
+        if (response.data && 'id' in response.data) {
+            return response.data;
+        } else if (response.data && 'data' in response.data && response.data.data) {
+            return response.data.data;
+        }
+        throw new Error('Lesson not found');
+    } catch (error: any) {
+        console.error('Error fetching lesson:', error);
+        throw new Error(error.message || 'Failed to fetch lesson');
+    }
+}
 
   async createLesson(data: CreateLessonData): Promise<Lesson> {
     const response = await apiClient.post<Lesson>('/lessons', data);

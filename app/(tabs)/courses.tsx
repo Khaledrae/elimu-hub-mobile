@@ -1,6 +1,7 @@
 // app/(tabs)/courses.tsx
 import { Button } from "@/src/components/ui/Button";
 import { colors, fontSize, fontWeight, spacing } from "@/src/constants/theme";
+import { User } from "@/src/services/authService";
 import courseService, { Course } from "@/src/services/courseService";
 import { showConfirmation, showError, showSuccess } from "@/src/utils/alerts";
 import { Ionicons } from "@expo/vector-icons";
@@ -30,7 +31,7 @@ interface Teacher {
 export default function CoursesScreen() {
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [teachers, setTeachers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -414,7 +415,7 @@ export default function CoursesScreen() {
                   {teachers.map((teacher) => (
                     <Picker.Item 
                       key={teacher.id} 
-                      label={`${teacher.user.first_name} ${teacher.user.last_name}`} 
+                      label={`${teacher.first_name} ${teacher.last_name}`} 
                       value={teacher.id.toString()} 
                     />
                   ))}
