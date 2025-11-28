@@ -1,4 +1,5 @@
 // src/components/ui/Button.tsx
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -9,7 +10,7 @@ import {
   TouchableOpacityProps,
   ViewStyle,
 } from 'react-native';
-import { borderRadius, colors, fontSize, fontWeight, shadows } from '../../constants/theme';
+import { borderRadius, colors, fontSize, fontWeight, shadows, spacing } from '../../constants/theme';
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
@@ -20,6 +21,8 @@ interface ButtonProps extends TouchableOpacityProps {
   disabled?: boolean;
   fullWidth?: boolean;
   icon?: React.ReactNode;
+  leftIcon?: string; // Add leftIcon prop
+  rightIcon?: string; // Add rightIcon prop for consistency
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -31,6 +34,8 @@ export const Button: React.FC<ButtonProps> = ({
   disabled = false,
   fullWidth = false,
   icon,
+  leftIcon,
+  rightIcon,
   style,
   ...props
 }) => {
@@ -50,7 +55,37 @@ export const Button: React.FC<ButtonProps> = ({
     ...styles[`text_${size}`],
     ...(isDisabled && styles.textDisabled),
   };
+ // Get icon color based on variant
+  const getIconColor = () => {
+    switch (variant) {
+      case 'primary':
+        return colors.text.primary;
+      case 'secondary':
+        return colors.neutral.white;
+      case 'outline':
+      case 'ghost':
+        return colors.primary.yellow;
+      default:
+        return colors.text.primary;
+    }
+  };
 
+  // Get icon size based on button size
+  const getIconSize = () => {
+    switch (size) {
+      case 'small':
+        return 16;
+      case 'medium':
+        return 18;
+      case 'large':
+        return 20;
+      default:
+        return 18;
+    }
+  };
+
+  const iconColor = getIconColor();
+  const iconSize = getIconSize();
   return (
     <TouchableOpacity
       style={[buttonStyle, style]}
@@ -65,8 +100,30 @@ export const Button: React.FC<ButtonProps> = ({
         />
       ) : (
         <>
+          {/* Left Icon */}
+          {leftIcon && (
+            <Ionicons 
+              name={leftIcon as any} 
+              size={iconSize} 
+              color={iconColor} 
+              style={styles.leftIcon} 
+            />
+          )}
+          
+          {/* Legacy icon prop for backward compatibility */}
           {icon && icon}
+          
           <Text style={textStyle}>{title}</Text>
+          
+          {/* Right Icon */}
+          {rightIcon && (
+            <Ionicons 
+              name={rightIcon as any} 
+              size={iconSize} 
+              color={iconColor} 
+              style={styles.rightIcon} 
+            />
+          )}
         </>
       )}
     </TouchableOpacity>
@@ -148,5 +205,12 @@ const styles = StyleSheet.create({
   },
   textDisabled: {
     opacity: 0.7,
+  },
+    // Icon styles
+  leftIcon: {
+    marginRight: spacing.xs,
+  },
+  rightIcon: {
+    marginLeft: spacing.xs,
   },
 });

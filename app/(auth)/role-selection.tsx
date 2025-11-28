@@ -3,11 +3,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { borderRadius, colors, fontSize, fontWeight, shadows, spacing } from '../../src/constants/theme';
 
@@ -54,7 +54,8 @@ export default function RoleSelectionScreen() {
   const router = useRouter();
 
   const handleRoleSelect = (role: string) => {
-    router.push(`./(auth)/register/${role}`);
+    router.push(`/(auth)/register/${role}` as any);
+
   };
 
   return (
@@ -92,7 +93,7 @@ export default function RoleSelectionScreen() {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Already have an account? </Text>
-        <TouchableOpacity onPress={() => router.push('./auth/screens/login')}>
+        <TouchableOpacity onPress={() => router.push('./login')}>
           <Text style={styles.footerLink}>Sign In</Text>
         </TouchableOpacity>
       </View>
