@@ -739,7 +739,7 @@ const styles = StyleSheet.create({
     mediaContainer: {
         alignItems: "center",
         padding: spacing.xl,
-        backgroundColor: colors.neutral.gray50,
+        backgroundColor: colors.neutral.gray500,
         borderRadius: 12,
         marginBottom: spacing.lg,
     },
@@ -779,7 +779,7 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
     quizInfo: {
-        backgroundColor: colors.neutral.gray50,
+        backgroundColor: colors.neutral.gray500,
         padding: spacing.lg,
         borderRadius: 12,
         marginBottom: spacing.lg,
@@ -866,7 +866,7 @@ const styles = StyleSheet.create({
     userAnswer: {
         fontSize: fontSize.base,
         color: colors.text.primary,
-        backgroundColor: colors.neutral.gray50,
+        backgroundColor: colors.neutral.gray500,
         padding: spacing.md,
         borderRadius: 8,
         marginBottom: spacing.md,

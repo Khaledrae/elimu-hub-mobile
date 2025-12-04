@@ -77,7 +77,7 @@ export default function ClassDetailsScreen() {
       console.log(classResponse);
 
       setStudents(classResponse.students || []);
-      // Transform courses data
+
       const transformedCourses: ClassCourse[] = (
         classResponse.courses || []
       ).map((course: any) => ({
@@ -85,7 +85,10 @@ export default function ClassDetailsScreen() {
         title: course.title,
         slug: course.slug,
         level: course.level,
-        teacher: course.teacher || "No teacher assigned",
+        teacher:
+          course.teacher && course.teacher.user
+            ? `${course.teacher.user.first_name} ${course.teacher.user.last_name}`
+            : "No teacher assigned",
         status: course.status,
       }));
       setCourses(transformedCourses);
@@ -236,7 +239,9 @@ export default function ClassDetailsScreen() {
             size={24}
             color={colors.primary.yellow}
           />
-          <Text style={styles.statNumber}>{classData.students?.length || 0}</Text>
+          <Text style={styles.statNumber}>
+            {classData.students?.length || 0}
+          </Text>
           <Text style={styles.statLabel}>Students</Text>
         </View>
         <View style={styles.statItem}>
@@ -245,7 +250,9 @@ export default function ClassDetailsScreen() {
             size={24}
             color={colors.primary.yellow}
           />
-          <Text style={styles.statNumber}>{classData.courses?.length || 0}</Text>
+          <Text style={styles.statNumber}>
+            {classData.courses?.length || 0}
+          </Text>
           <Text style={styles.statLabel}>Courses</Text>
         </View>
         <View style={styles.statItem}>
