@@ -7,9 +7,9 @@ import {
   spacing,
 } from "@/src/constants/theme";
 import { useAuth } from "@/src/contexts/AuthContext";
-import classService from "@/src/services/classService";
-import courseService from "@/src/services/courseService";
-import lessonService from "@/src/services/lessonService";
+import classService, { ClassModel } from "@/src/services/classService";
+import courseService, { Course } from "@/src/services/courseService";
+import lessonService, { Lesson } from "@/src/services/lessonService";
 import schoolService from "@/src/services/schoolService";
 import { showConfirmation } from "@/src/utils/alerts";
 import { Ionicons } from "@expo/vector-icons";
@@ -46,6 +46,10 @@ export default function DashboardScreen() {
     lessons: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [studentClass, setStudentClass] = useState<ClassModel | null>(null);
+  const [myCourses, setMyCourses] = useState<Course[]>([]);
+  const [recentLessons, setRecentLessons] = useState<Lesson[]>([]);
+  const [lastLesson, setLastLesson] = useState<Lesson | null>(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -57,8 +61,8 @@ export default function DashboardScreen() {
 
       // Role-based data fetching
       const userRole = user?.role;
-      
-      if (userRole === 'admin') {
+
+      if (userRole === "admin") {
         // Admin sees everything
         const [schoolsData, classesData, coursesData, lessonsData] =
           await Promise.all([
@@ -74,14 +78,13 @@ export default function DashboardScreen() {
           courses: coursesData.length,
           lessons: lessonsData.length,
         });
-      } else if (userRole === 'teacher') {
+      } else if (userRole === "teacher") {
         // Teacher sees their classes and courses
-        const [classesData, coursesData, lessonsData] =
-          await Promise.all([
-            classService.getAllClasses().catch(() => []), // Would be teacher's classes
-            courseService.getAllCourses().catch(() => []), // Would be teacher's courses
-            lessonService.getAllLessons().catch(() => []), // Would be teacher's lessons
-          ]);
+        const [classesData, coursesData, lessonsData] = await Promise.all([
+          classService.getAllClasses().catch(() => []), // Would be teacher's classes
+          courseService.getAllCourses().catch(() => []), // Would be teacher's courses
+          lessonService.getAllLessons().catch(() => []), // Would be teacher's lessons
+        ]);
 
         setStats({
           schools: 0, // Teachers don't manage schools
@@ -91,15 +94,27 @@ export default function DashboardScreen() {
           myClasses: classesData.length,
           myCourses: coursesData.length,
         });
-      } else if (userRole === 'student') {
+      } else if (userRole === "student") {
         // Student sees their classes and lessons
-        const [classesData, coursesData, lessonsData] =
-          await Promise.all([
-            classService.getAllClasses().catch(() => []), // Would be student's classes
-            courseService.getAllCourses().catch(() => []), // Would be student's courses
-            lessonService.getAllLessons().catch(() => []), // Would be student's lessons
-          ]);
+        const [classesData, coursesData, lessonsData] = await Promise.all([
+          classService.getAllClasses().catch(() => []), // Would be student's classes
+          courseService.getAllCourses().catch(() => []), // Would be student's courses
+          lessonService.getAllLessons().catch(() => []), // Would be student's lessons
+        ]);
 
+        const classId = 1;
+
+        const classData = await classService.getClass(classId);
+        setStudentClass(classData);
+
+        if (classData.courses) {
+          setMyCourses(classData.courses);
+        }
+
+        if (classData.lessons && classData.lessons.length > 0) {
+          setRecentLessons(classData.lessons);
+          setLastLesson(classData.lessons[0]); // or last accessed logic later
+        }
         setStats({
           schools: 0,
           classes: 0,
@@ -109,7 +124,7 @@ export default function DashboardScreen() {
           myCourses: coursesData.length,
           myLessons: lessonsData.length,
         });
-      } else if (userRole === 'parent') {
+      } else if (userRole === "parent") {
         // Parent sees children's progress
         setStats({
           schools: 0,
@@ -148,7 +163,7 @@ export default function DashboardScreen() {
     const userRole = user?.role;
     const cards = [];
 
-    if (userRole === 'admin') {
+    if (userRole === "admin") {
       cards.push(
         {
           title: "Schools",
@@ -175,7 +190,7 @@ export default function DashboardScreen() {
           color: colors.status.warning,
         }
       );
-    } else if (userRole === 'teacher') {
+    } else if (userRole === "teacher") {
       cards.push(
         {
           title: "My Classes",
@@ -202,7 +217,7 @@ export default function DashboardScreen() {
           color: colors.primary.yellow,
         }
       );
-    } else if (userRole === 'student') {
+    } else if (userRole === "student") {
       cards.push(
         {
           title: "My Classes",
@@ -229,7 +244,7 @@ export default function DashboardScreen() {
           color: colors.primary.yellow,
         }
       );
-    } else if (userRole === 'parent') {
+    } else if (userRole === "parent") {
       cards.push(
         {
           title: "Children",
@@ -371,6 +386,86 @@ export default function DashboardScreen() {
           />
         </TouchableOpacity>
       </View>
+      {user?.role === "student" && (
+        <View style={styles.studentSection}>
+          {/* Continue Learning Card */}
+          {lastLesson && (
+            <TouchableOpacity
+              style={styles.continueCard}
+              onPress={() => router.push(`/lesson/${lastLesson.id}`)}
+            >
+              <Ionicons
+                name="play-circle-outline"
+                size={26}
+                color={colors.primary.yellow}
+              />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.continueText}>Continue Learning</Text>
+                <Text style={styles.continueTitle}>{lastLesson.title}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* Courses with Progress */}
+          <Text style={styles.studentSectionTitle}>My Courses</Text>
+          {myCourses.map((course) => (
+            <TouchableOpacity
+              key={course.id}
+              style={styles.courseCard}
+              onPress={() => router.push(`/course/${course.id}`)}
+            >
+              <Text style={styles.courseTitle}>{course.name}</Text>
+              <View style={styles.progressBar}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${course.progress}%` },
+                  ]}
+                />
+              </View>
+              <Text style={styles.progressPercent}>
+                {course.progress}% completed
+              </Text>
+            </TouchableOpacity>
+          ))}
+
+          {/* Class Info */}
+          <Text style={styles.studentSectionTitle}>My Class</Text>
+          <TouchableOpacity
+            style={styles.classCard}
+            onPress={() => router.push(`/class/${studentClass.id}`)}
+          >
+            <Ionicons
+              name="school-outline"
+              size={24}
+              color={colors.secondary.green}
+            />
+            <View style={{ marginLeft: 10 }}>
+              <Text style={styles.className}>{studentClass.name}</Text>
+              <Text style={styles.classTeacher}>
+                Teacher: {studentClass.teacher}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Recent Lessons */}
+          <Text style={styles.studentSectionTitle}>Recent Lessons</Text>
+          {recentLessons.map((lesson) => (
+            <TouchableOpacity
+              key={lesson.id}
+              style={styles.lessonCard}
+              onPress={() => router.push(`/lesson/${lesson.id}`)}
+            >
+              <Ionicons
+                name="book-outline"
+                size={20}
+                color={colors.status.info}
+              />
+              <Text style={styles.lessonTitle}>{lesson.title}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {/* Main Menu */}
       <ScrollView
@@ -608,5 +703,87 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.text.secondary,
     marginLeft: spacing.sm,
+  },
+  studentSection: {
+    padding: spacing.lg,
+  },
+
+  continueCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.neutral.white,
+    padding: spacing.md,
+    borderRadius: 12,
+    marginBottom: spacing.lg,
+    ...shadows.sm,
+  },
+
+  continueText: {
+    fontSize: fontSize.sm,
+    color: colors.text.secondary,
+  },
+
+  continueTitle: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.text.primary,
+  },
+
+  studentSectionTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    marginVertical: spacing.md,
+    color: colors.text.primary,
+  },
+
+  courseCard: {
+    backgroundColor: colors.neutral.white,
+    padding: spacing.md,
+    borderRadius: 12,
+    marginBottom: spacing.md,
+    ...shadows.sm,
+  },
+
+  courseTitle: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+  },
+
+  progressBar: {
+    height: 8,
+    backgroundColor: "#eee",
+    borderRadius: 8,
+    marginTop: 8,
+  },
+
+  progressFill: {
+    height: 8,
+    backgroundColor: colors.primary.yellow,
+    borderRadius: 8,
+  },
+
+  classCard: {
+    flexDirection: "row",
+    backgroundColor: colors.neutral.white,
+    padding: spacing.md,
+    borderRadius: 12,
+    ...shadows.sm,
+    marginBottom: spacing.lg,
+  },
+
+  lessonCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: spacing.md,
+    backgroundColor: colors.neutral.white,
+    borderRadius: 12,
+    marginBottom: spacing.sm,
+    ...shadows.sm,
+  },
+
+  lessonTitle: {
+    marginLeft: 10,
+    fontSize: fontSize.base,
+    color: colors.text.primary,
   },
 });

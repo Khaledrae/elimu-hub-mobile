@@ -1,4 +1,5 @@
 // src/constants/theme.ts
+
 export const colors = {
   primary: {
     yellow: '#FDB813',
@@ -23,6 +24,17 @@ export const colors = {
     gray800: '#262626',
     gray900: '#171717',
   },
+  text: {
+    primary: '#1F2937',
+    secondary: '#6B7280',
+    tertiary: '#9CA3AF',
+    inverse: '#FFFFFF',
+  },
+  border: {
+    light: '#E5E7EB',
+    DEFAULT: '#D1D5DB',
+    dark: '#9CA3AF',
+  },
   status: {
     success: '#10B981',
     error: '#EF4444',
@@ -34,16 +46,30 @@ export const colors = {
     secondary: '#F9FAFB',
     tertiary: '#F3F4F6',
   },
-  text: {
-    primary: '#1F2937',
-    secondary: '#6B7280',
-    tertiary: '#9CA3AF',
-    inverse: '#FFFFFF',
+
+  // Added for clarity in UI components
+  icon: {
+    default: '#6B7280', // grey-500
+    active: '#FDB813',  // primary yellow
+    disabled: '#9CA3AF' // grey-400
   },
-  border: {
-    light: '#E5E7EB',
-    DEFAULT: '#D1D5DB',
-    dark: '#9CA3AF',
+
+  // Input-specific variants
+  input: {
+    background: '#FFFFFF',
+    border: '#D1D5DB',
+    focusBorder: '#FDB813',
+    placeholder: '#9CA3AF',
+    text: '#1F2937',
+    errorBorder: '#EF4444',
+  },
+
+  button: {
+    primary: '#FDB813',
+    primaryText: '#000000',
+    secondary: '#E5E7EB',
+    secondaryText: '#1F2937',
+    disabled: '#D1D5DB',
   },
 };
 
@@ -83,8 +109,9 @@ export const fontWeight = {
   bold: '700' as const,
 };
 
+// Shadows for RN + Web
 export const shadows = {
-   xs: {
+  xs: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.02,
@@ -114,6 +141,15 @@ export const shadows = {
   },
 };
 
+// Web scaling (optional)
+export const breakpoints = {
+  sm: 480,
+  md: 768,
+  lg: 1024,
+  xl: 1280,
+};
+
+// Combine theme
 export const theme = {
   colors,
   spacing,
@@ -121,4 +157,11 @@ export const theme = {
   fontSize,
   fontWeight,
   shadows,
+  breakpoints,
 };
+
+// ***************
+// THEME TYPE
+// ***************
+
+export type Theme = typeof theme;
