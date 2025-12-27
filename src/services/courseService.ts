@@ -25,7 +25,7 @@ export interface Course {
     name: string;
     level_group: string;
   }>;
-  lesson_count?: number;
+  lessons_count?: number;
   assessment_count?: number;
 }
 
@@ -42,7 +42,7 @@ function isCourse(data: any): data is Course {
 class CourseService {
   async getAllCourses(): Promise<Course[]> {
     const response = await apiClient.get<Course[] | ApiResponse<Course[]>>('/courses');
-    console.log("CourseService.getAllCourses response:", response.data);
+    //console.log("CourseService.getAllCourses response:", response.data);
     
     if (Array.isArray(response.data)) {
       return response.data;
@@ -90,7 +90,7 @@ class CourseService {
   }
 
   async getAvailableTeachers(): Promise<any[]> {
-    const response = await apiClient.get<any[] | ApiResponse<any[]>>('/teachers/available');
+    const response = await apiClient.get<any[] | ApiResponse<any[]>>('users?role=teacher');
     
     if (Array.isArray(response.data)) {
       return response.data;
@@ -110,6 +110,20 @@ class CourseService {
     }
     return [];
   }
+ async getCoursesForClass(classId: number) {
+    try {
+      const response = await apiClient.get(`/classes/${classId}/courses`);
+      console.log('Courses for class response:', response.data);
+      // The response structure is: { class: {...}, courses: [...] }
+      if (response.data && response.data.courses) {
+        return response.data.courses;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching courses for class:', error);
+      return [];
+    }
+  }
 
   async getCourseLessons(courseId: number): Promise<any[]> {
     const response = await apiClient.get<any[] | ApiResponse<any[]>>(`/courses/${courseId}/lessons`);
@@ -120,6 +134,18 @@ class CourseService {
       return response.data.data || [];
     }
     return [];
+  }
+
+  async assignCoursesToClass(classId: number, courseIds: number[]) {
+    try {
+      const response = await apiClient.post(`classes/${classId}/assign-courses`, {
+        course_ids: courseIds
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error assigning courses to class:', error);
+      throw error;
+    }
   }
 
   async getCourseAssessments(courseId: number): Promise<any[]> {

@@ -37,6 +37,7 @@ class UserService {
       }
       
       const response = await apiClient.get<{ users: User[] }>("/users", { params });
+      console.log("UserService.getAllUsers response:", response);
       return response.data.users;
     } catch (error: any) {
       throw this.handleError(error);

@@ -82,7 +82,7 @@ class LessonService {
     return response.data;
   }
 
-  async getLessonsByClass(classId: number): Promise<Lesson[]> {
+  async getLessonsByClass(classId?: number): Promise<Lesson[]> {
     const response = await apiClient.get<Lesson[]>(`/classes/${classId}/lessons`);
     return response.data;
   }

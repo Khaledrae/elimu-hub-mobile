@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { colors } from '../src/constants/theme';
 
 export default function LaunchScreen() {
@@ -22,7 +22,7 @@ export default function LaunchScreen() {
         loop
         style={styles.lottie}
       />
-      <ActivityIndicator size="large" color={colors.primary.yellow} />
+      {/* <ActivityIndicator size="large" color={colors.primary.yellow} /> */}
     </View>
   );
 }
