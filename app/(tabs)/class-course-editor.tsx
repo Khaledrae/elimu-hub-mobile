@@ -230,10 +230,10 @@ export default function ClassCourseEditorScreen() {
                   )}
                   
                   <View style={styles.courseMeta}>
-                    {course.teacher?.user?.name && (
+                    {course.teacher?.user?.first_name && (
                       <View style={styles.metaItem}>
                         <Ionicons name="person-outline" size={12} color={colors.text.secondary} />
-                        <Text style={styles.metaText}>{course.teacher.user.name}</Text>
+                        <Text style={styles.metaText}>{course.teacher.user.first_name}</Text>
                       </View>
                     )}
                     
@@ -283,7 +283,7 @@ export default function ClassCourseEditorScreen() {
           onPress={handleSave}
           variant="primary"
           style={styles.saveButton}
-          loading={saving}
+          isLoading={saving}
           disabled={saving}
         />
       </View>

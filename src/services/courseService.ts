@@ -99,6 +99,17 @@ class CourseService {
     }
     return [];
   }
+  // Get lessons for a course filtered by class (student view)
+async getCourseLessonsByClass (courseId: number, classId: number) {
+  const response = await apiClient.get(`/lessons/course/${courseId}/class/${classId}`);
+  return response.data;
+};
+/*
+// Get assessments for a course
+async getCourseAssessments(courseId: number){
+  const response = await apiClient.get(`/assessments/course/${courseId}`);
+  return response.data;
+};*/
 
   async getCourseClasses(courseId: number): Promise<any[]> {
     const response = await apiClient.get<any[] | ApiResponse<any[]>>(`/courses/${courseId}/classes`);
@@ -125,6 +136,8 @@ class CourseService {
     }
   }
 
+  
+
   async getCourseLessons(courseId: number): Promise<any[]> {
     const response = await apiClient.get<any[] | ApiResponse<any[]>>(`/courses/${courseId}/lessons`);
     
@@ -149,8 +162,8 @@ class CourseService {
   }
 
   async getCourseAssessments(courseId: number): Promise<any[]> {
-    const response = await apiClient.get<any[] | ApiResponse<any[]>>(`/courses/${courseId}/assessments`);
-    
+    const response = await apiClient.get<any[] | ApiResponse<any[]>>(`/assessments/course/${courseId}`);
+    console.log("CourseService.getCourseAssessments response:", response);
     if (Array.isArray(response.data)) {
       return response.data;
     } else if (isApiResponse<any[]>(response.data)) {

@@ -120,15 +120,22 @@ class CoveredLessonService {
     console.log("Course progress response:", response);
     return response.data;
   }
+// Get recent lessons for a specific course
+  async getCourseRecentLessons(studentId: number, courseId: number) {
+    const response = await apiClient.get(`/students/${studentId}/course-recent-lessons/${courseId}`);
+    return response.data;
+  };
 
 
   // Get recent lessons
+  /*
   async getRecentLessons(limit: number = 5): Promise<CoveredLesson[]> {
     const response = await apiClient.get('/my/recent-lessons', {
       params: { limit }
     });
     return response.data.data;
   }
+*/
 }
 
 export default new CoveredLessonService();
