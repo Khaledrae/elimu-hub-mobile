@@ -13,6 +13,32 @@ export interface User {
   phone: string;
   county: number;
   status: string;
+  student_profile?: StudentProfile;
+  teacher_profile?: TeacherProfile;
+  created_at: string;
+  updated_at: string;
+}
+export interface StudentProfile{
+  
+  // Student specific
+  admission_number?: string;
+  grade_level?: string;
+  grade_level_id?: number;
+  school_name?: string;
+  dob?: string;
+  gender?: string;
+}
+export interface TeacherProfile {
+  // Teacher specific
+  id: number;
+  staff_number: string;
+  subject_specialization: string;
+  school_name?: string | null;
+  qualification: string;
+  experience_years: string;
+  gender: string;
+  dob: string;
+  status: string;
   created_at: string;
   updated_at: string;
 }
@@ -204,7 +230,8 @@ class AuthService {
     try {
       const response = await apiClient.get<{ user: User }>("auth/me");
       // Update stored user data
-      await storage.set("user", JSON.stringify(response.data.user));
+      //console.log("GetMe response:", response.data);
+      await storage.set("user", JSON.stringify(response.data));
       return response.data.user;
     } catch (error: any) {
       throw this.handleError(error);

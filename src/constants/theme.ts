@@ -112,6 +112,7 @@ export const shadows = {
     shadowRadius: 8,
     elevation: 8,
   },
+  
 };
 
 export const theme = {
@@ -122,3 +123,5 @@ export const theme = {
   fontWeight,
   shadows,
 };
+
+export type Theme = typeof theme;

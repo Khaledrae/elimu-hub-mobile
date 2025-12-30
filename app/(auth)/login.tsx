@@ -1,4 +1,5 @@
 // (auth)/login.tsx
+import PlatformIcon from "@/src/components/ui/PlatformIcon";
 import { showError, showSuccess } from "@/src/utils/alerts";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -9,6 +10,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { Button } from "../../src/components/ui/Button";
@@ -20,12 +22,12 @@ import {
   spacing,
 } from "../../src/constants/theme";
 import { useAuth } from "../../src/contexts/AuthContext";
-
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
 
   const [email, setEmail] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
     {}
@@ -61,9 +63,12 @@ export default function LoginScreen() {
       console.log("Logging in with:", { email: email.trim(), password });
       var response = await login({ email: email.trim(), password });
       console.log("Logging in Resp:", { response });
-      showSuccess("Login Successful", `You have logged in successfully ${response.user.first_name}.`);
+      showSuccess(
+        "Login Successful",
+        `You have logged in successfully ${response.user.first_name}.`
+      );
       // Navigation will be handled by the auth state change
-      router.replace('/(tabs)/dashboard');
+      router.replace("/(tabs)/dashboard");
     } catch (err: any) {
       showError("Login Failed", err.message || "Invalid credentials");
     } finally {
@@ -115,9 +120,21 @@ export default function LoginScreen() {
                 setErrors({ ...errors, password: undefined });
             }}
             error={errors.password}
-            secureTextEntry
+            secureTextEntry={!showPassword}
             leftIcon="lock-closed-outline"
           />
+
+          <TouchableOpacity
+            style={styles.eyeIcon}
+            onPress={() => setShowPassword(!showPassword)}
+            activeOpacity={0.7}
+          >
+            <PlatformIcon
+              name={showPassword ? "eye-outline" : "eye-off-outline"}
+              size={24}
+              color="#666"
+            />
+          </TouchableOpacity>
 
           <Button
             title="Sign In"
@@ -165,6 +182,14 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: spacing.lg,
     justifyContent: "center",
+  },
+
+  eyeIcon: {
+    position: "absolute",
+    right: 12,
+    top: "41%", // Center vertically
+    marginTop: 12, // Adjust based on your input height
+    padding: 4,
   },
   header: {
     alignItems: "center",

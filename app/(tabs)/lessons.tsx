@@ -1,20 +1,21 @@
 // app/(tabs)/lessons.tsx
 import { Button } from "@/src/components/ui/Button";
 import { colors, fontSize, fontWeight, spacing } from "@/src/constants/theme";
+import { useAuth } from "@/src/contexts/AuthContext";
 import lessonService, { Lesson } from "@/src/services/lessonService";
 import { showConfirmation, showError, showSuccess } from "@/src/utils/alerts";
 import { Ionicons } from "@expo/vector-icons";
-import { Picker } from '@react-native-picker/picker';
+import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface Course {
@@ -34,8 +35,12 @@ export default function LessonsScreen() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
+  const { user: currentUser } = useAuth();
+
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const canManageLesson =
+    currentUser?.role === "admin" || currentUser?.role === "teacher";
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [formData, setFormData] = useState({
     course_id: "",
@@ -93,7 +98,12 @@ export default function LessonsScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.course_id || !formData.class_id || !formData.title || !formData.order) {
+    if (
+      !formData.course_id ||
+      !formData.class_id ||
+      !formData.title ||
+      !formData.order
+    ) {
       showError("Error", "Course, class, title, and order are required");
       return;
     }
@@ -107,7 +117,7 @@ export default function LessonsScreen() {
         video_url: formData.video_url,
         document_path: formData.document_path,
         order: parseInt(formData.order),
-        status: formData.status as 'active' | 'inactive' | 'draft',
+        status: formData.status as "active" | "inactive" | "draft",
       };
 
       if (editingLesson) {
@@ -117,7 +127,7 @@ export default function LessonsScreen() {
         await lessonService.createLesson(submitData);
         showSuccess("Success", "Lesson created successfully");
       }
-      
+
       setModalVisible(false);
       resetForm();
       loadLessons();
@@ -183,7 +193,7 @@ export default function LessonsScreen() {
   const handleLessonPress = (lesson: Lesson) => {
     router.push({
       pathname: "/lesson-details",
-      params: { lessonId: lesson.id.toString() }
+      params: { lessonId: lesson.id.toString() },
     } as any);
   };
 
@@ -197,10 +207,14 @@ export default function LessonsScreen() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return '#4CAF50';
-      case 'inactive': return '#F44336';
-      case 'draft': return '#FF9800';
-      default: return '#9E9E9E';
+      case "active":
+        return "#4CAF50";
+      case "inactive":
+        return "#F44336";
+      case "draft":
+        return "#FF9800";
+      default:
+        return "#9E9E9E";
     }
   };
 
@@ -213,15 +227,15 @@ export default function LessonsScreen() {
       {/* Header with Navigation */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity 
-            onPress={() => router.back()} 
+          <TouchableOpacity
+            onPress={() => router.back()}
             style={styles.backButton}
           >
             <Ionicons name="arrow-back" size={24} color={colors.text.primary} />
           </TouchableOpacity>
           <Text style={styles.title}>Lessons Management</Text>
         </View>
-        
+
         <Button
           title="Add Lesson"
           onPress={() => setModalVisible(true)}
@@ -239,9 +253,15 @@ export default function LessonsScreen() {
           </View>
         ) : lessons.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="play-outline" size={64} color={colors.neutral.gray400} />
+            <Ionicons
+              name="play-outline"
+              size={64}
+              color={colors.neutral.gray400}
+            />
             <Text style={styles.emptyText}>No lessons found</Text>
-            <Text style={styles.emptySubtext}>Add your first lesson to get started</Text>
+            <Text style={styles.emptySubtext}>
+              Add your first lesson to get started
+            </Text>
           </View>
         ) : (
           lessons.map((lesson) => (
@@ -252,20 +272,25 @@ export default function LessonsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.lessonIcon}>
-                <Ionicons 
-                  name={hasMedia(lesson) ? "play-circle-outline" : "document-text-outline"} 
-                  size={24} 
-                  color={colors.primary.yellow} 
+                <Ionicons
+                  name={
+                    hasMedia(lesson)
+                      ? "play-circle-outline"
+                      : "document-text-outline"
+                  }
+                  size={24}
+                  color={colors.primary.yellow}
                 />
               </View>
 
               <View style={styles.lessonInfo}>
                 <Text style={styles.lessonTitle}>{lesson.title}</Text>
                 <Text style={styles.lessonDetails}>
-                  Course: {getCourseName(lesson)} • Class: {getClassName(lesson)}
+                  Course: {getCourseName(lesson)} • Class:{" "}
+                  {getClassName(lesson)}
                 </Text>
                 <Text style={styles.lessonOrder}>Order: #{lesson.order}</Text>
-                
+
                 {lesson.content && (
                   <Text style={styles.lessonContent} numberOfLines={2}>
                     {lesson.content}
@@ -275,13 +300,21 @@ export default function LessonsScreen() {
                 <View style={styles.mediaIndicators}>
                   {lesson.video_url && (
                     <View style={styles.mediaIndicator}>
-                      <Ionicons name="videocam-outline" size={12} color={colors.text.secondary} />
+                      <Ionicons
+                        name="videocam-outline"
+                        size={12}
+                        color={colors.text.secondary}
+                      />
                       <Text style={styles.mediaText}>Video</Text>
                     </View>
                   )}
                   {lesson.document_path && (
                     <View style={styles.mediaIndicator}>
-                      <Ionicons name="document-outline" size={12} color={colors.text.secondary} />
+                      <Ionicons
+                        name="document-outline"
+                        size={12}
+                        color={colors.text.secondary}
+                      />
                       <Text style={styles.mediaText}>Document</Text>
                     </View>
                   )}
@@ -290,7 +323,7 @@ export default function LessonsScreen() {
                 <View
                   style={[
                     styles.statusBadge,
-                    { backgroundColor: getStatusColor(lesson.status) }
+                    { backgroundColor: getStatusColor(lesson.status) },
                   ]}
                 >
                   <Text style={styles.statusText}>
@@ -298,27 +331,28 @@ export default function LessonsScreen() {
                   </Text>
                 </View>
               </View>
-
-              <View style={styles.actions}>
-                <TouchableOpacity
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleEdit(lesson);
-                  }}
-                  style={styles.actionButton}
-                >
-                  <Ionicons name="create-outline" size={20} color="#2196F3" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleDelete(lesson);
-                  }}
-                  style={styles.actionButton}
-                >
-                  <Ionicons name="trash-outline" size={20} color="#F44336" />
-                </TouchableOpacity>
-              </View>
+              {canManageLesson && (
+                <View style={styles.actions}>
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleEdit(lesson);
+                    }}
+                    style={styles.actionButton}
+                  >
+                    <Ionicons name="create-outline" size={20} color="#2196F3" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleDelete(lesson);
+                    }}
+                    style={styles.actionButton}
+                  >
+                    <Ionicons name="trash-outline" size={20} color="#F44336" />
+                  </TouchableOpacity>
+                </View>
+              )}
             </TouchableOpacity>
           ))
         )}
@@ -362,10 +396,10 @@ export default function LessonsScreen() {
                 >
                   <Picker.Item label="Select course..." value="" />
                   {courses.map((course) => (
-                    <Picker.Item 
-                      key={course.id} 
-                      label={`${course.title} (${course.level})`} 
-                      value={course.id.toString()} 
+                    <Picker.Item
+                      key={course.id}
+                      label={`${course.title} (${course.level})`}
+                      value={course.id.toString()}
                     />
                   ))}
                 </Picker>
@@ -382,10 +416,10 @@ export default function LessonsScreen() {
                 >
                   <Picker.Item label="Select class..." value="" />
                   {classes.map((classItem) => (
-                    <Picker.Item 
-                      key={classItem.id} 
-                      label={`${classItem.name} (${classItem.level_group})`} 
-                      value={classItem.id.toString()} 
+                    <Picker.Item
+                      key={classItem.id}
+                      label={`${classItem.name} (${classItem.level_group})`}
+                      value={classItem.id.toString()}
                     />
                   ))}
                 </Picker>
@@ -464,10 +498,10 @@ export default function LessonsScreen() {
                   style={styles.picker}
                 >
                   {statusOptions.map((status) => (
-                    <Picker.Item 
-                      key={status.value} 
-                      label={status.label} 
-                      value={status.value} 
+                    <Picker.Item
+                      key={status.value}
+                      label={status.label}
+                      value={status.value}
                     />
                   ))}
                 </Picker>
@@ -562,7 +596,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.primary.yellow + '20',
+    backgroundColor: colors.primary.yellow + "20",
     justifyContent: "center",
     alignItems: "center",
     marginRight: spacing.md,
@@ -671,7 +705,7 @@ const styles = StyleSheet.create({
   },
   textArea: {
     minHeight: 100,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   picker: {
     borderWidth: 1,

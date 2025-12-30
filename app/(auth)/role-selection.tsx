@@ -62,10 +62,10 @@ export default function RoleSelectionScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <View style={styles.logoPlaceholder}>
-          <Text style={styles.logoText}>ELIMI HUB</Text>
+          <Text style={styles.logoText}>ELIMU HUB</Text>
         </View>
         
-        <Text style={styles.title}>Join Elimi Hub</Text>
+        <Text style={styles.title}>Join Elimu Hub</Text>
         <Text style={styles.subtitle}>Select your role to get started</Text>
       </View>
 

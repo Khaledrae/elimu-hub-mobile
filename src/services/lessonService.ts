@@ -76,17 +76,21 @@ class LessonService {
     const response = await apiClient.get<Lesson[]>('/lessons');
     return response.data;
   }
+  
 
   async getLessonsByCourse(courseId: number): Promise<Lesson[]> {
     const response = await apiClient.get<Lesson[]>(`/courses/${courseId}/lessons`);
     return response.data;
   }
 
-  async getLessonsByClass(classId: number): Promise<Lesson[]> {
+  async getLessonsByClass(classId?: number): Promise<Lesson[]> {
     const response = await apiClient.get<Lesson[]>(`/classes/${classId}/lessons`);
     return response.data;
   }
-
+  async getLessonsByCourseAndClass(courseId: number, classId: number): Promise<Lesson[]> {
+    const response = await apiClient.get(`/lessons/course/${courseId}/class/${classId}`);
+    return response.data;
+  };
   async getLesson(id: number): Promise<Lesson> {
     try {
         const response = await apiClient.get<Lesson | ApiResponse<Lesson>>(`/lessons/${id}`);
