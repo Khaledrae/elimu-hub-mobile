@@ -23,7 +23,7 @@ export interface PaymentResponse {
 
 export interface PaymentStatus {
   success: boolean;
-  status: 'pending' | 'completed' | 'failed';
+  status: 'pending' | 'success' | 'failed';
   transaction?: any;
   subscription?: any;
 }
@@ -44,6 +44,7 @@ const subscriptionService = {
   }): Promise<PaymentResponse> {
     try {
       const response = await apiClient.post('/subscription/initiate-payment', data);
+      console.log("Payment initiation response:", response);
       return response.data;
     } catch (error: any) {
       if (error.response?.data) {
@@ -56,6 +57,7 @@ const subscriptionService = {
   async checkPaymentStatus(checkoutRequestId: string): Promise<PaymentStatus> {
     try {
       const response = await apiClient.get(`/subscription/check-status/${checkoutRequestId}`);
+      //console.log("Payment status response:", response);
       return response.data;
     } catch (error) {
       throw error;

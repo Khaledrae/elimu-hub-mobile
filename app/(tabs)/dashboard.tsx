@@ -814,7 +814,7 @@ export default function DashboardScreen() {
     // Handle boolean conversion safely
     const isPremium = user?.is_premium === true;
 
-    if (isPremium) {
+    /*if (isPremium) {
       return (
         <View style={styles.premiumActiveBanner}>
           <Ionicons name="star" size={20} color="#FFD700" />
@@ -831,7 +831,7 @@ export default function DashboardScreen() {
         </View>
       );
     }
-
+*/
     return (
       <>
         <TouchableOpacity
@@ -1121,20 +1121,6 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     flex: 1,
-  },
-
-  premiumBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#9C27B0",
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  premiumText: {
-    flex: 1,
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
-    color: colors.neutral.white,
   },
   greeting: {
     fontSize: fontSize.base,
