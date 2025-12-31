@@ -5,7 +5,7 @@ export interface SubscriptionPlan {
   name: string; 
   code: string;
   description: string;
-  price: number;
+  amount: number;
   duration_days: number | null;
   features: string[];
 }

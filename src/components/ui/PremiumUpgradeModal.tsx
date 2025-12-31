@@ -62,8 +62,8 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
     if (plan.code === 'yearly') {
       const monthlyPlan = plans.find(p => p.code === 'monthly');
       if (monthlyPlan) {
-        const yearlyFromMonthly = monthlyPlan.price * 12;
-        const savings = yearlyFromMonthly - plan.price;
+        const yearlyFromMonthly = monthlyPlan.amount * 12;
+        const savings = yearlyFromMonthly - plan.amount;
         return `Save KSh ${savings}`;
       }
     }
@@ -276,7 +276,7 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                         </View>
                         
                         <Text style={styles.planName}>{plan.name}</Text>
-                        <Text style={styles.planPrice}>KSh {plan.price}</Text>
+                        <Text style={styles.planPrice}>KSh {plan.amount}</Text>
                         <Text style={styles.planPeriod}>
                           {plan.duration_days 
                             ? `for ${plan.duration_days} days` 
