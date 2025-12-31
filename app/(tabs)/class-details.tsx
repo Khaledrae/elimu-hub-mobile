@@ -1,19 +1,23 @@
 // app/class-details.tsx
 import { Button } from "@/src/components/ui/Button";
 import { colors, fontSize, fontWeight, spacing } from "@/src/constants/theme";
+import { useAuth } from "@/src/contexts/AuthContext"; // Adjust path as needed
 import classService, { ClassModel } from "@/src/services/classService";
+import courseService from "@/src/services/courseService";
 import { Student } from "@/src/types";
-import { showError } from "@/src/utils/alerts";
+import { showError, showSuccess } from "@/src/utils/alerts";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 // Define simplified interfaces for the class details page
@@ -23,9 +27,9 @@ interface ClassCourse {
   slug: string;
   level: string;
   teacher?: string;
-  status: string; // Use string instead of specific union type
+  status: string;
 }
-// Update your ClassLesson interface
+
 interface ClassLesson {
   id: number;
   title: string;
@@ -42,10 +46,32 @@ interface ClassLesson {
   created_at?: string;
   updated_at?: string;
 }
+
+interface AvailableCourse {
+  id: number;
+  title: string;
+  description?: string;
+  level: string;
+  status: string;
+  teacher?: {
+    id: number;
+    user: {
+      first_name: string;
+      last_name: string;
+    };
+  };
+}
+
 export default function ClassDetailsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const classId = parseInt(params.classId as string);
+  
+  // Get user info from auth context
+  const { user } = useAuth();
+  
+  // Check if user has management permissions (admin or teacher)
+  const canManage = user?.role === 'admin' || user?.role === 'teacher';
 
   const [classData, setClassData] = useState<ClassModel | null>(null);
   const [courses, setCourses] = useState<ClassCourse[]>([]);
@@ -57,6 +83,12 @@ export default function ClassDetailsScreen() {
     "overview" | "lessons" | "courses" | "students"
   >("overview");
 
+  // Course management state
+  const [showCourseModal, setShowCourseModal] = useState(false);
+  const [allAvailableCourses, setAllAvailableCourses] = useState<AvailableCourse[]>([]);
+  const [selectedCourseIds, setSelectedCourseIds] = useState<Set<number>>(new Set());
+  const [savingCourses, setSavingCourses] = useState(false);
+
   useEffect(() => {
     if (classId) {
       loadClassDetails();
@@ -66,12 +98,7 @@ export default function ClassDetailsScreen() {
   const loadClassDetails = async () => {
     try {
       setLoading(true);
-      const [classResponse /*, coursesResponse, lessonsResponse*/] =
-        await Promise.all([
-          classService.getClass(classId),
-          //classService.getClassCourses(classId),
-          //classService.getClassLessons(classId)
-        ]);
+      const classResponse = await classService.getClass(classId);
 
       setClassData(classResponse);
       console.log(classResponse);
@@ -93,7 +120,6 @@ export default function ClassDetailsScreen() {
       }));
       setCourses(transformedCourses);
 
-      // Transform lessons data - lessonsResponse is now { class: any, lessons: Lesson[] }
       const transformedLessons: ClassLesson[] = (
         classResponse.lessons || []
       ).map((lesson: any) => ({
@@ -120,12 +146,86 @@ export default function ClassDetailsScreen() {
     }
   };
 
+  const loadAvailableCourses = async () => {
+    try {
+      const allCourses = await courseService.getAllCourses();
+      setAllAvailableCourses(allCourses);
+      
+      // Initialize selected courses with currently assigned ones
+      const currentCourseIds = new Set(courses.map(c => c.id));
+      setSelectedCourseIds(currentCourseIds);
+    } catch (error: any) {
+      console.error("Failed to load available courses:", error);
+      showError("Error", "Failed to load available courses");
+    }
+  };
+
+  const handleManageCourses = async () => {
+    // Double-check permissions before opening modal
+    if (!canManage) {
+      showError("Permission Denied", "You don't have permission to manage courses");
+      return;
+    }
+    await loadAvailableCourses();
+    setShowCourseModal(true);
+  };
+
+  const toggleCourseSelection = (courseId: number) => {
+    const newSelected = new Set(selectedCourseIds);
+    if (newSelected.has(courseId)) {
+      // Show warning when removing a course
+      Alert.alert(
+        "Remove Course",
+        "Removing this course from the class may affect associated lessons and student progress. Are you sure?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Remove",
+            style: "destructive",
+            onPress: () => {
+              newSelected.delete(courseId);
+              setSelectedCourseIds(newSelected);
+            },
+          },
+        ]
+      );
+    } else {
+      newSelected.add(courseId);
+      setSelectedCourseIds(newSelected);
+    }
+  };
+
+  const handleSaveCourses = async () => {
+    try {
+      setSavingCourses(true);
+      const courseIdsArray = Array.from(selectedCourseIds);
+      
+      await courseService.assignCoursesToClass(classId, courseIdsArray);
+      
+      showSuccess("Success", "Course assignments updated successfully!");
+      setShowCourseModal(false);
+      
+      // Reload class details to reflect changes
+      await loadClassDetails();
+    } catch (error: any) {
+      console.error("Failed to update course assignments:", error);
+      showError("Error", error.message || "Failed to update course assignments");
+    } finally {
+      setSavingCourses(false);
+    }
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
     loadClassDetails();
   };
 
   const handleEditClass = () => {
+    // Check permissions
+    if (!canManage) {
+      showError("Permission Denied", "You don't have permission to edit classes");
+      return;
+    }
     router.push({
       pathname: "/edit-class",
       params: { classId: classId.toString() },
@@ -133,6 +233,11 @@ export default function ClassDetailsScreen() {
   };
 
   const handleAddLesson = () => {
+    // Check permissions
+    if (!canManage) {
+      showError("Permission Denied", "You don't have permission to add lessons");
+      return;
+    }
     router.push({
       pathname: "/add-lesson",
       params: { classId: classId.toString() },
@@ -175,7 +280,20 @@ export default function ClassDetailsScreen() {
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Remove formatTime function since we don't have time fields
+  const getCourseStatusColor = (status: string) => {
+    switch (status) {
+      case "published":
+      case "active":
+        return "#4CAF50";
+      case "draft":
+        return "#FFA726";
+      case "archived":
+      case "inactive":
+        return "#757575";
+      default:
+        return "#2196F3";
+    }
+  };
 
   if (loading) {
     return (
@@ -222,13 +340,15 @@ export default function ClassDetailsScreen() {
             </Text>
           </View>
         </View>
-        <TouchableOpacity onPress={handleEditClass} style={styles.editButton}>
-          <Ionicons
-            name="create-outline"
-            size={20}
-            color={colors.primary.yellow}
-          />
-        </TouchableOpacity>
+        {canManage && (
+          <TouchableOpacity onPress={handleEditClass} style={styles.editButton}>
+            <Ionicons
+              name="create-outline"
+              size={20}
+              color={colors.primary.yellow}
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Stats Overview */}
@@ -358,12 +478,14 @@ export default function ClassDetailsScreen() {
             <View style={styles.infoSection}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Recent Lessons</Text>
-                <Button
-                  title="Add Lesson"
-                  onPress={handleAddLesson}
-                  size="small"
-                  variant="secondary"
-                />
+                {canManage && (
+                  <Button
+                    title="Add Lesson"
+                    onPress={handleAddLesson}
+                    size="small"
+                    variant="secondary"
+                  />
+                )}
               </View>
               {lessons.slice(0, 3).map((lesson) => (
                 <TouchableOpacity
@@ -397,12 +519,14 @@ export default function ClassDetailsScreen() {
           <View style={styles.tabContent}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>All Lessons</Text>
-              <Button
-                title="Add Lesson"
-                onPress={handleAddLesson}
-                size="small"
-                variant="secondary"
-              />
+              {canManage && (
+                <Button
+                  title="Add Lesson"
+                  onPress={handleAddLesson}
+                  size="small"
+                  variant="secondary"
+                />
+              )}
             </View>
             {lessons.map((lesson) => (
               <TouchableOpacity
@@ -448,15 +572,19 @@ export default function ClassDetailsScreen() {
                   color={colors.neutral.gray400}
                 />
                 <Text style={styles.emptyText}>No lessons available</Text>
-                <Text style={styles.emptySubtext}>
-                  Add your first lesson to get started
-                </Text>
-                <Button
-                  title="Add Lesson"
-                  onPress={handleAddLesson}
-                  variant="primary"
-                  style={styles.emptyButton}
-                />
+                {canManage && (
+                  <>
+                    <Text style={styles.emptySubtext}>
+                      Add your first lesson to get started
+                    </Text>
+                    <Button
+                      title="Add Lesson"
+                      onPress={handleAddLesson}
+                      variant="primary"
+                      style={styles.emptyButton}
+                    />
+                  </>
+                )}
               </View>
             )}
           </View>
@@ -464,7 +592,17 @@ export default function ClassDetailsScreen() {
 
         {activeTab === "courses" && (
           <View style={styles.tabContent}>
-            <Text style={styles.sectionTitle}>Courses</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Assigned Courses</Text>
+              {canManage && (
+                <Button
+                  title="Manage Courses"
+                  onPress={handleManageCourses}
+                  size="small"
+                  variant="secondary"
+                />
+              )}
+            </View>
             {courses.map((course) => (
               <TouchableOpacity
                 key={course.id}
@@ -477,8 +615,7 @@ export default function ClassDetailsScreen() {
                     style={[
                       styles.statusBadge,
                       {
-                        backgroundColor:
-                          course.status === "active" ? "#4CAF50" : "#F44336",
+                        backgroundColor: getCourseStatusColor(course.status),
                       },
                     ]}
                   >
@@ -496,10 +633,31 @@ export default function ClassDetailsScreen() {
               </TouchableOpacity>
             ))}
             {courses.length === 0 && (
-              <Text style={styles.emptyText}>No courses assigned</Text>
+              <View style={styles.emptyState}>
+                <Ionicons
+                  name="book-outline"
+                  size={64}
+                  color={colors.neutral.gray400}
+                />
+                <Text style={styles.emptyText}>No courses assigned</Text>
+                {canManage && (
+                  <>
+                    <Text style={styles.emptySubtext}>
+                      Assign courses to this class to get started
+                    </Text>
+                    <Button
+                      title="Manage Courses"
+                      onPress={handleManageCourses}
+                      variant="primary"
+                      style={styles.emptyButton}
+                    />
+                  </>
+                )}
+              </View>
             )}
           </View>
         )}
+
         {activeTab === "students" && (
           <View style={styles.tabContent}>
             <Text style={styles.sectionTitle}>Students</Text>
@@ -507,7 +665,6 @@ export default function ClassDetailsScreen() {
               <View key={student.id} style={styles.studentCard}>
                 <View style={styles.studentAvatar}>
                   <Text style={styles.avatarText}>
-                    {/* Use admission number or student ID as fallback */}
                     {student.admission_number?.charAt(0) || "S"}
                   </Text>
                 </View>
@@ -533,6 +690,183 @@ export default function ClassDetailsScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Course Management Modal - Only accessible if canManage */}
+      {canManage && (
+        <Modal
+          visible={showCourseModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowCourseModal(false)}
+        >
+          <View style={styles.modalContainer}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <TouchableOpacity
+                onPress={() => setShowCourseModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+              <View style={styles.modalHeaderContent}>
+                <Text style={styles.modalTitle}>Manage Courses</Text>
+                <Text style={styles.modalSubtitle}>
+                  {selectedCourseIds.size} selected
+                </Text>
+              </View>
+            </View>
+
+            {/* Warning Banner */}
+            <View style={styles.warningBanner}>
+              <Ionicons
+                name="warning-outline"
+                size={20}
+                color={colors.status.warning}
+              />
+              <Text style={styles.warningText}>
+                Removing courses may affect associated lessons and student progress
+              </Text>
+            </View>
+
+            {/* Course List */}
+            <ScrollView style={styles.modalContent}>
+              {allAvailableCourses.map((course) => {
+                const isSelected = selectedCourseIds.has(course.id);
+                const wasOriginallyAssigned = courses.some(c => c.id === course.id);
+
+                return (
+                  <TouchableOpacity
+                    key={course.id}
+                    style={[
+                      styles.modalCourseCard,
+                      isSelected && styles.modalCourseCardSelected,
+                    ]}
+                    onPress={() => toggleCourseSelection(course.id)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.modalCourseContent}>
+                      {/* Custom Checkbox */}
+                      <View
+                        style={[
+                          styles.customCheckbox,
+                          isSelected && styles.customCheckboxSelected,
+                        ]}
+                      >
+                        {isSelected && (
+                          <Ionicons
+                            name="checkmark"
+                            size={16}
+                            color={colors.neutral.white}
+                          />
+                        )}
+                      </View>
+
+                      {/* Course Info */}
+                      <View style={styles.modalCourseInfo}>
+                        <Text style={styles.modalCourseTitle}>
+                          {course.title}
+                        </Text>
+                        {course.description && (
+                          <Text
+                            style={styles.modalCourseDescription}
+                            numberOfLines={2}
+                          >
+                            {course.description}
+                          </Text>
+                        )}
+                        <View style={styles.modalCourseMeta}>
+                          <View style={styles.metaItem}>
+                            <Ionicons
+                              name="school-outline"
+                              size={12}
+                              color={colors.text.secondary}
+                            />
+                            <Text style={styles.metaText}>{course.level}</Text>
+                          </View>
+                          {course.teacher && (
+                            <View style={styles.metaItem}>
+                              <Ionicons
+                                name="person-outline"
+                                size={12}
+                                color={colors.text.secondary}
+                              />
+                              <Text style={styles.metaText}>
+                                {course.teacher.user.first_name}{" "}
+                                {course.teacher.user.last_name}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+
+                      {/* Status Badge */}
+                      <View
+                        style={[
+                          styles.modalStatusBadge,
+                          {
+                            backgroundColor: getCourseStatusColor(course.status),
+                          },
+                        ]}
+                      >
+                        <Text style={styles.statusText}>
+                          {course.status.toUpperCase()}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Currently Assigned Indicator */}
+                    {wasOriginallyAssigned && (
+                      <View style={styles.currentlyAssignedBadge}>
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={12}
+                          color={colors.secondary.green}
+                        />
+                        <Text style={styles.currentlyAssignedText}>
+                          Currently assigned
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+
+              {allAvailableCourses.length === 0 && (
+                <View style={styles.modalEmptyState}>
+                  <Ionicons
+                    name="book-outline"
+                    size={64}
+                    color={colors.neutral.gray400}
+                  />
+                  <Text style={styles.emptyText}>No courses available</Text>
+                  <Text style={styles.emptySubtext}>
+                    Create courses first before assigning them
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Modal Footer */}
+            <View style={styles.modalFooter}>
+              <Button
+                title="Cancel"
+                onPress={() => setShowCourseModal(false)}
+                variant="outline"
+                style={styles.modalCancelButton}
+                disabled={savingCourses}
+              />
+              <Button
+                title={savingCourses ? "Saving..." : "Save Changes"}
+                onPress={handleSaveCourses}
+                variant="primary"
+                style={styles.modalSaveButton}
+                isLoading={savingCourses}
+                disabled={savingCourses}
+              />
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -694,7 +1028,6 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     marginBottom: 2,
   },
-
   lessonCard: {
     backgroundColor: colors.neutral.white,
     borderRadius: 12,
@@ -791,15 +1124,6 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     marginBottom: 2,
   },
-  studentEmail: {
-    fontSize: fontSize.sm,
-    color: colors.text.secondary,
-    marginBottom: 2,
-  },
-  studentAdmission: {
-    fontSize: fontSize.xs,
-    color: colors.text.secondary,
-  },
   statusBadge: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
@@ -829,5 +1153,156 @@ const styles = StyleSheet.create({
   },
   emptyButton: {
     marginTop: spacing.md,
+  },
+  // Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: colors.background.primary,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: spacing.lg,
+    backgroundColor: colors.neutral.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral.gray200,
+  },
+  modalCloseButton: {
+    padding: spacing.sm,
+    marginRight: spacing.sm,
+  },
+  modalHeaderContent: {
+    flex: 1,
+  },
+  modalTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.text.primary,
+  },
+  modalSubtitle: {
+    fontSize: fontSize.sm,
+    color: colors.text.secondary,
+    marginTop: 2,
+  },
+  warningBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.status.warning + "20",
+    padding: spacing.md,
+    margin: spacing.lg,
+    borderRadius: 8,
+    gap: spacing.sm,
+  },
+  warningText: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    color: colors.text.secondary,
+    lineHeight: 18,
+  },
+  modalContent: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+  },
+  modalCourseCard: {
+    backgroundColor: colors.neutral.white,
+    borderRadius: 12,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.neutral.gray200,
+  },
+  modalCourseCardSelected: {
+    borderColor: colors.primary.yellow,
+    backgroundColor: colors.primary.yellow + "10",
+  },
+  modalCourseContent: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.md,
+  },
+  customCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.neutral.gray300,
+    backgroundColor: colors.neutral.white,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  customCheckboxSelected: {
+    backgroundColor: colors.primary.yellow,
+    borderColor: colors.primary.yellow,
+  },
+  modalCourseInfo: {
+    flex: 1,
+  },
+  modalCourseTitle: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  modalCourseDescription: {
+    fontSize: fontSize.sm,
+    color: colors.text.secondary,
+    marginBottom: spacing.sm,
+    lineHeight: 18,
+  },
+  modalCourseMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    flexWrap: "wrap",
+  },
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  metaText: {
+    fontSize: fontSize.xs,
+    color: colors.text.secondary,
+  },
+  modalStatusBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+  },
+  currentlyAssignedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.secondary.green + "10",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: spacing.sm,
+    gap: 4,
+  },
+  currentlyAssignedText: {
+    fontSize: fontSize.xs,
+    color: colors.secondary.green,
+    fontWeight: fontWeight.semibold,
+  },
+  modalEmptyState: {
+    alignItems: "center",
+    padding: spacing.xl,
+    marginTop: spacing.xl,
+  },
+  modalFooter: {
+    flexDirection: "row",
+    padding: spacing.lg,
+    backgroundColor: colors.neutral.white,
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral.gray200,
+    gap: spacing.md,
+  },
+  modalCancelButton: {
+    flex: 1,
+  },
+  modalSaveButton: {
+    flex: 1,
   },
 });

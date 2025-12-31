@@ -8,11 +8,11 @@ import { Picker } from "@react-native-picker/picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function UsersScreen() {
@@ -21,7 +21,8 @@ export default function UsersScreen() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const params = useLocalSearchParams();
-  
+  // TODO: Replace with actual premium status from backend
+  const IS_PREMIUM = false;
   const userTypes = [
     { label: "All Users", value: "all" },
     { label: "Teachers", value: "teacher" },
@@ -29,7 +30,7 @@ export default function UsersScreen() {
     { label: "Parents", value: "parent" },
     { label: "Admins", value: "admin" },
   ];
-  
+
   const [userType, setUserType] = useState<
     "all" | "teacher" | "student" | "parent" | "admin"
   >((params.initialFilter as any) || "all");
@@ -77,18 +78,18 @@ export default function UsersScreen() {
       ]
     );
   };
-
+const isPremium = IS_PREMIUM;
   // Safe function to get avatar text
   const getAvatarText = (user: User) => {
-    const firstChar = user.first_name?.[0] || '';
-    const lastChar = user.last_name?.[0] || '';
-    return `${firstChar}${lastChar}`.toUpperCase() || 'U';
+    const firstChar = user.first_name?.[0] || "";
+    const lastChar = user.last_name?.[0] || "";
+    return `${firstChar}${lastChar}`.toUpperCase() || "U";
   };
 
   // Safe function to get full name
   const getFullName = (user: User) => {
-    const firstName = user.first_name || 'Unknown';
-    const lastName = user.last_name || 'User';
+    const firstName = user.first_name || "Unknown";
+    const lastName = user.last_name || "User";
     return `${firstName} ${lastName}`;
   };
 
@@ -170,16 +171,12 @@ export default function UsersScreen() {
           users.map((user) => (
             <View key={user.id} style={styles.userCard}>
               <View style={styles.userAvatar}>
-                <Text style={styles.avatarText}>
-                  {getAvatarText(user)}
-                </Text>
+                <Text style={styles.avatarText}>{getAvatarText(user)}</Text>
               </View>
 
               <View style={styles.userInfo}>
-                <Text style={styles.userName}>
-                  {getFullName(user)}
-                </Text>
-                <Text style={styles.userEmail}>{user.email || 'No email'}</Text>
+                <Text style={styles.userName}>{getFullName(user)}</Text>
+                <Text style={styles.userEmail}>{user.email || "No email"}</Text>
                 {user.phone && (
                   <Text style={styles.userPhone}>{user.phone}</Text>
                 )}
@@ -197,17 +194,21 @@ export default function UsersScreen() {
                         { color: getUserRoleColor(user.role) },
                       ]}
                     >
-                      {(user.role || 'unknown').toUpperCase()}
+                      {(user.role || "unknown").toUpperCase()}
                     </Text>
                   </View>
                   <View
                     style={[
                       styles.statusBadge,
-                      { backgroundColor: getStatusColor(user.status || 'active') },
+                      {
+                        backgroundColor: getStatusColor(
+                          user.status || "active"
+                        ),
+                      },
                     ]}
                   >
                     <Text style={styles.statusText}>
-                      {(user.status || 'active').toUpperCase()}
+                      {(user.status || "active").toUpperCase()}
                     </Text>
                   </View>
                 </View>

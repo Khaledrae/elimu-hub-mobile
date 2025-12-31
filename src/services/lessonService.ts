@@ -124,7 +124,7 @@ class LessonService {
   // Get available courses for lessons
   async getAvailableCourses(): Promise<Course[]> {
     try {
-      const response = await apiClient.get<Course[] | ApiResponse<Course[]>>('/courses/available');
+      const response = await apiClient.get<Course[] | ApiResponse<Course[]>>('/courses');
       
       // Handle both response structures
       if (Array.isArray(response.data)) {

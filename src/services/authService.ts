@@ -11,6 +11,7 @@ export interface User {
   email: string;
   role: string;
   phone: string;
+  is_premium: boolean;
   county: number;
   status: string;
   student_profile?: StudentProfile;

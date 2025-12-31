@@ -1,4 +1,5 @@
 // app/(tabs)/dashboard.tsx
+import PremiumUpgradeModal from "@/src/components/ui/PremiumUpgradeModal";
 import {
   colors,
   fontSize,
@@ -38,10 +39,27 @@ interface DashboardStats {
   myCourses?: number;
   myLessons?: number;
   completedLessons?: number;
+  totalLessons?: number;
   pendingAssignments?: number;
   progressPercentage?: number;
 }
-
+interface RecentActivity {
+  id: number;
+  type:
+    | "lesson_completed"
+    | "lesson_started"
+    | "lesson_failed"
+    | "quiz_taken"
+    | "assignment_submitted"
+    | "login"
+    | "created";
+  title: string;
+  description: string;
+  date: string;
+  course_name?: string;
+  score?: number;
+  status?: string;
+}
 interface StudentCourse {
   id: number;
   title: string;
@@ -86,19 +104,22 @@ export default function DashboardScreen() {
     courses: 0,
     lessons: 0,
   });
+  // TODO: Replace with actual premium status from backend
+  const IS_PREMIUM = user?.is_premium;
+  const isPremium = IS_PREMIUM;
+
   const [studentCourses, setStudentCourses] = useState<StudentCourse[]>([]);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>(
     []
   );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
   useEffect(() => {
     if (!isLoading && user) {
       loadDashboardData();
     }
   }, [user, isLoading]);
-
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const loadDashboardData = async () => {
     if (!user) {
       console.log("No user available, skipping dashboard load");
@@ -213,34 +234,44 @@ export default function DashboardScreen() {
 
         // Get progress data if coveredLessonService exists
         let progressData = { completed_lessons: 0 };
+        let pendingAssignments = 0;
+        let completedLessons = 0;
+        let totalLessons = 0;
+        let totalCourses = 0;
+        let progressPercentage = 0;
         try {
           const overallProgress = await coveredLessonService.getOverallProgress(
             studentId
           );
 
-          const completedLessons = overallProgress.completed;
-          const totalLessons = overallProgress.total_lessons;
+          console.log("Overall Progress:", overallProgress);
 
-          const progressPercentage = overallProgress.completion_rate;
+          completedLessons = overallProgress.completed;
+          totalLessons = overallProgress.total_lessons;
+          totalCourses = overallProgress.total_courses;
+          progressPercentage = overallProgress.completion_rate;
+
+          // Get pending assessments
+          const pendingAssessmentsData =
+            await coveredLessonService.getPendingAssessments(studentId);
+          pendingAssignments = pendingAssessmentsData.count;
+          //console.log("Pending Assignments:", pendingAssignments);
         } catch (error) {
-          
           console.log("Progress service not available yet", error);
         }
 
         // Get lessons data
-        const lessonsData = await lessonService.getLessonsByClass(gradeLevelId).catch(() => []);
+        const lessonsData = await lessonService
+          .getLessonsByClass(gradeLevelId)
+          .catch(() => []);
 
         // Calculate progress
-        const totalLessons = lessonsData.length;
-        const completedLessons = progressData.completed_lessons || 0;
+       /*
         const progressPercentage =
           totalLessons > 0
             ? Math.round((completedLessons / totalLessons) * 100)
             : 0;
-
-        // Get pending assignments (mock for now)
-        const pendingAssignments = 3;
-
+*/
         baseStats = {
           ...baseStats,
           schools: 0,
@@ -251,6 +282,7 @@ export default function DashboardScreen() {
           myCourses: coursesData.length,
           myLessons: lessonsData.length,
           completedLessons,
+          totalLessons,
           pendingAssignments,
           progressPercentage,
         };
@@ -455,7 +487,7 @@ export default function DashboardScreen() {
         },
         {
           title: "Lessons",
-          count: `${stats.completedLessons || 0}/${stats.lessons || 0}`,
+          count: `${stats.completedLessons || 0}/${stats.totalLessons || 0}`,
           icon: "book-outline",
           color: colors.status.warning,
           onPress: () => router.push("/lessons"),
@@ -737,6 +769,10 @@ export default function DashboardScreen() {
     switch (type) {
       case "lesson_completed":
         return "checkmark-circle-outline";
+      case "lesson_started":
+        return "play-circle-outline";
+      case "lesson_failed":
+        return "close-circle-outline";
       case "assignment_submitted":
         return "document-text-outline";
       case "quiz_taken":
@@ -766,46 +802,115 @@ export default function DashboardScreen() {
         return colors.text.secondary;
     }
   };
+  const handleUpgradeToPremium = () => {
+    // TODO: Navigate to premium upgrade screen
+    console.log("Upgrade to premium");
+  };
+  // In your dashboard.tsx
+  const PremiumBanner = () => {
+    const { user } = useAuth();
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
+    // Handle boolean conversion safely
+    const isPremium = user?.is_premium === true;
+
+    if (isPremium) {
+      return (
+        <View style={styles.premiumActiveBanner}>
+          <Ionicons name="star" size={20} color="#FFD700" />
+          <Text style={styles.premiumActiveText}>
+            Premium Member
+            {user?.subscription_expires_at &&
+              ` • Expires ${new Date(
+                user.subscription_expires_at
+              ).toLocaleDateString()}`}
+          </Text>
+          <TouchableOpacity onPress={() => router.push("/subscription")}>
+            <Text style={styles.manageText}>Manage</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <>
+        <TouchableOpacity
+          style={styles.premiumBanner}
+          onPress={() => setShowUpgradeModal(true)}
+        >
+          <Ionicons name="star-outline" size={20} color="#FFD700" />
+          <Text style={styles.premiumText}>
+            Upgrade to Premium for unlimited access & cross-grade learning!
+          </Text>
+          <Ionicons name="chevron-forward" size={20} color="#fff" />
+        </TouchableOpacity>
+
+        <PremiumUpgradeModal
+          visible={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+        />
+      </>
+    );
+  };
   const renderRoleSpecificContent = () => {
     const userRole = user?.role;
 
     if (userRole === "student" && studentCourses.length > 0) {
       return (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>My Courses</Text>
-            <TouchableOpacity onPress={() => router.push("/courses")}>
-              <Text style={styles.viewAll}>View All</Text>
-            </TouchableOpacity>
-          </View>
-
-          {studentCourses.map((course) => (
+        <>
+          {!isPremium && (
             <TouchableOpacity
-              key={course.id}
-              style={styles.courseCard}
-              onPress={() => router.push(`/course-details?courseId=${course.id}`)}
+              style={styles.premiumBanner}
+              onPress={() => setShowUpgradeModal(true)}
             >
-              <View style={styles.courseInfo}>
-                <Text style={styles.courseTitle}>{course.title}</Text>
-                <Text style={styles.courseTeacher}>
-                  {course.teacher?.user?.name || "Teacher"}
-                </Text>
-              </View>
-              <View style={styles.progressContainer}>
-                <Text style={styles.progressText}>{course.progress}%</Text>
-                <View style={styles.progressBar}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      { width: `${course.progress}%` },
-                    ]}
-                  />
-                </View>
-              </View>
+              <Ionicons name="star" size={20} color="#FFD700" />
+              <Text style={styles.premiumText}>
+                Upgrade to Premium for unlimited access & cross-grade learning!
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={colors.neutral.white}
+              />
             </TouchableOpacity>
-          ))}
-        </View>
+          )}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>My Courses</Text>
+              <TouchableOpacity onPress={() => router.push("/courses")}>
+                <Text style={styles.viewAll}>View All</Text>
+              </TouchableOpacity>
+            </View>
+
+            {studentCourses.map((course) => (
+              <TouchableOpacity
+                key={course.id}
+                style={styles.courseCard}
+                onPress={() =>
+                  router.push(`/course-details?courseId=${course.id}`)
+                }
+              >
+                <View style={styles.courseInfo}>
+                  <Text style={styles.courseTitle}>{course.title}</Text>
+                  <Text style={styles.courseTeacher}>
+                    {course.teacher?.user?.name || "Teacher"}
+                  </Text>
+                </View>
+                <View style={styles.progressContainer}>
+                  <Text style={styles.progressText}>{course.progress}%</Text>
+                  <View style={styles.progressBar}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${course.progress}%` },
+                      ]}
+                    />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>
       );
     }
 
@@ -983,6 +1088,10 @@ export default function DashboardScreen() {
           </View>
         )}
       </View>
+      <PremiumUpgradeModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </ScrollView>
   );
 }
@@ -1012,6 +1121,20 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     flex: 1,
+  },
+
+  premiumBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#9C27B0",
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  premiumText: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.neutral.white,
   },
   greeting: {
     fontSize: fontSize.base,
@@ -1271,5 +1394,64 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     marginTop: spacing.sm,
     textAlign: "center",
+  },
+  premiumBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "linear-gradient(135deg, #FFD700 0%, #FFC107 100%)",
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    shadowColor: "#FFD700",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: "#FFC107",
+  },
+  premiumText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2c3e50",
+    marginLeft: 12,
+    marginRight: 8,
+    lineHeight: 18,
+  },
+  premiumActiveBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)",
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    shadowColor: "#4CAF50",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: "#388E3C",
+  },
+  premiumActiveText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#fff",
+    marginLeft: 12,
+    marginRight: 8,
+    lineHeight: 18,
+  },
+  manageText: {
+    fontSize: 13,
+    color: "#fff",
+    fontWeight: "600",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 6,
   },
 });

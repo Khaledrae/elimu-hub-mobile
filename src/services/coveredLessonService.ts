@@ -1,6 +1,6 @@
 // src/services/coveredLessonService.ts
 import apiClient from "./api";
-
+import { Assessment } from "./assessmentService";
 
 interface OverallProgress {
   student: {
@@ -12,6 +12,7 @@ interface OverallProgress {
     };
   };
   total_lessons: number;
+  total_courses: number;
   covered_lessons: number;
   completed: number;
   in_progress: number;
@@ -27,7 +28,20 @@ interface OverallProgress {
     total_lessons: number;
   }>;
 }
-
+export interface RecentActivity {
+  id: number;
+  type: 'lesson_started' | 'lesson_completed' | 'lesson_failed' | 'quiz_taken';
+  title: string;
+  description: string;
+  date: string;
+  course_name: string;
+  score?: number;
+  status: string;
+}
+export interface AssignmentsResponse {
+  count: number;
+  assessments: Assessment[];
+}
 export interface CourseProgress {
   course: {
     id: number;
@@ -51,14 +65,13 @@ export interface CourseProgress {
   }>;
 }
 
-
 interface CoveredLesson {
   id: number;
   student_id: number;
   lesson_id: number;
   course_id: number;
   class_id: number;
-  status: 'in-progress' | 'completed' | 'failed';
+  status: "in-progress" | "completed" | "failed";
   score: number | null;
   time_spent: number;
   attempts: number;
@@ -75,19 +88,29 @@ class CoveredLessonService {
   // Start a lesson
   async startLesson(lessonId: number, userId?: number): Promise<CoveredLesson> {
     //console.log("Starting lesson with ID:", lessonId, "for user ID:", userId);
-    const response = await apiClient.post(`students/${userId}/covered-lessons/start`, {
-      lesson_id: lessonId,     
-    });
+    const response = await apiClient.post(
+      `students/${userId}/covered-lessons/start`,
+      {
+        lesson_id: lessonId,
+      }
+    );
     //console.log("Start lesson response:", response.data);
     return response.data.data;
   }
 
   // Complete a lesson with quiz score
-  async completeLesson(lessonId: number, score: number, timeSpent?: number): Promise<CoveredLesson> {
-    const response = await apiClient.post(`/my/covered-lessons/${lessonId}/complete`, {
-      score,
-      time_spent: timeSpent,
-    });
+  async completeLesson(
+    lessonId: number,
+    score: number,
+    timeSpent?: number
+  ): Promise<CoveredLesson> {
+    const response = await apiClient.post(
+      `/my/covered-lessons/${lessonId}/complete`,
+      {
+        score,
+        time_spent: timeSpent,
+      }
+    );
     return response.data.data;
   }
 
@@ -98,34 +121,49 @@ class CoveredLessonService {
     class_id?: number;
     per_page?: number;
   }): Promise<{ data: CoveredLesson[]; meta: any }> {
-    const response = await apiClient.get('/my/covered-lessons', { params });
+    const response = await apiClient.get("/my/covered-lessons", { params });
     return response.data;
   }
 
   // Get last lesson
   async getLastLesson(): Promise<CoveredLesson | null> {
-    const response = await apiClient.get('/my/last-lesson');
+    const response = await apiClient.get("/my/last-lesson");
     return response.data.data;
   }
 
-   async getOverallProgress(studentId: number): Promise<OverallProgress> {
-    const response = await apiClient.get(`/students/${studentId}/overall-progress`);
-    //console.log("Overall progress response:", response);
+  async getOverallProgress(studentId: number): Promise<OverallProgress> {
+    const response = await apiClient.get(
+      `/students/${studentId}/overall-progress`
+    );
+    console.log("Overall progress response:", response);
+    return response.data;
+  }
+  async getPendingAssessments(studentId: number): Promise<AssignmentsResponse> {
+    const response = await apiClient.get(
+      `/students/${studentId}/pending-assessments`
+    );
+    //console.log("Pending assessments response:", response);
     return response.data;
   }
 
   // Get progress for a specific course
-  async getProgressForCourse(courseId: number, studentId: number): Promise<CourseProgress> {
-    const response = await apiClient.get(`my/progress/${courseId}/${studentId}`);
+  async getProgressForCourse(
+    courseId: number,
+    studentId: number
+  ): Promise<CourseProgress> {
+    const response = await apiClient.get(
+      `my/progress/${courseId}/${studentId}`
+    );
     console.log("Course progress response:", response);
     return response.data;
   }
-// Get recent lessons for a specific course
+  // Get recent lessons for a specific course
   async getCourseRecentLessons(studentId: number, courseId: number) {
-    const response = await apiClient.get(`/students/${studentId}/course-recent-lessons/${courseId}`);
+    const response = await apiClient.get(
+      `/students/${studentId}/course-recent-lessons/${courseId}`
+    );
     return response.data;
-  };
-
+  }
 
   // Get recent lessons
   /*
