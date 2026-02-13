@@ -2,7 +2,7 @@
 import { Button } from "@/src/components/ui/Button";
 import { colors, fontSize, fontWeight, spacing } from "@/src/constants/theme";
 import { useAuth } from "@/src/contexts/AuthContext"; // Adjust path as needed
-import classService, { ClassModel } from "@/src/services/classService";
+import classService, { ClassLesson, ClassModel } from "@/src/services/classService";
 import courseService from "@/src/services/courseService";
 import { Student } from "@/src/types";
 import { showError, showSuccess } from "@/src/utils/alerts";
@@ -30,23 +30,6 @@ interface ClassCourse {
   status: string;
 }
 
-interface ClassLesson {
-  id: number;
-  title: string;
-  description?: string;
-  content_type?: "text" | "video" | "document" | "mixed";
-  video_url?: string;
-  document_path?: string;
-  order: number;
-  status: string;
-  teacher?: string;
-  course?: {
-    title: string;
-  };
-  created_at?: string;
-  updated_at?: string;
-}
-
 interface AvailableCourse {
   id: number;
   title: string;
@@ -66,12 +49,12 @@ export default function ClassDetailsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const classId = parseInt(params.classId as string);
-  
+
   // Get user info from auth context
   const { user } = useAuth();
-  
+
   // Check if user has management permissions (admin or teacher)
-  const canManage = user?.role === 'admin' || user?.role === 'teacher';
+  const canManage = user?.role === "admin" || user?.role === "teacher";
 
   const [classData, setClassData] = useState<ClassModel | null>(null);
   const [courses, setCourses] = useState<ClassCourse[]>([]);
@@ -85,8 +68,12 @@ export default function ClassDetailsScreen() {
 
   // Course management state
   const [showCourseModal, setShowCourseModal] = useState(false);
-  const [allAvailableCourses, setAllAvailableCourses] = useState<AvailableCourse[]>([]);
-  const [selectedCourseIds, setSelectedCourseIds] = useState<Set<number>>(new Set());
+  const [allAvailableCourses, setAllAvailableCourses] = useState<
+    AvailableCourse[]
+  >([]);
+  const [selectedCourseIds, setSelectedCourseIds] = useState<Set<number>>(
+    new Set(),
+  );
   const [savingCourses, setSavingCourses] = useState(false);
 
   useEffect(() => {
@@ -150,9 +137,9 @@ export default function ClassDetailsScreen() {
     try {
       const allCourses = await courseService.getAllCourses();
       setAllAvailableCourses(allCourses);
-      
+
       // Initialize selected courses with currently assigned ones
-      const currentCourseIds = new Set(courses.map(c => c.id));
+      const currentCourseIds = new Set(courses.map((c) => c.id));
       setSelectedCourseIds(currentCourseIds);
     } catch (error: any) {
       console.error("Failed to load available courses:", error);
@@ -163,7 +150,10 @@ export default function ClassDetailsScreen() {
   const handleManageCourses = async () => {
     // Double-check permissions before opening modal
     if (!canManage) {
-      showError("Permission Denied", "You don't have permission to manage courses");
+      showError(
+        "Permission Denied",
+        "You don't have permission to manage courses",
+      );
       return;
     }
     await loadAvailableCourses();
@@ -187,7 +177,7 @@ export default function ClassDetailsScreen() {
               setSelectedCourseIds(newSelected);
             },
           },
-        ]
+        ],
       );
     } else {
       newSelected.add(courseId);
@@ -199,17 +189,20 @@ export default function ClassDetailsScreen() {
     try {
       setSavingCourses(true);
       const courseIdsArray = Array.from(selectedCourseIds);
-      
+
       await courseService.assignCoursesToClass(classId, courseIdsArray);
-      
+
       showSuccess("Success", "Course assignments updated successfully!");
       setShowCourseModal(false);
-      
+
       // Reload class details to reflect changes
       await loadClassDetails();
     } catch (error: any) {
       console.error("Failed to update course assignments:", error);
-      showError("Error", error.message || "Failed to update course assignments");
+      showError(
+        "Error",
+        error.message || "Failed to update course assignments",
+      );
     } finally {
       setSavingCourses(false);
     }
@@ -223,7 +216,10 @@ export default function ClassDetailsScreen() {
   const handleEditClass = () => {
     // Check permissions
     if (!canManage) {
-      showError("Permission Denied", "You don't have permission to edit classes");
+      showError(
+        "Permission Denied",
+        "You don't have permission to edit classes",
+      );
       return;
     }
     router.push({
@@ -235,7 +231,10 @@ export default function ClassDetailsScreen() {
   const handleAddLesson = () => {
     // Check permissions
     if (!canManage) {
-      showError("Permission Denied", "You don't have permission to add lessons");
+      showError(
+        "Permission Denied",
+        "You don't have permission to add lessons",
+      );
       return;
     }
     router.push({
@@ -724,7 +723,8 @@ export default function ClassDetailsScreen() {
                 color={colors.status.warning}
               />
               <Text style={styles.warningText}>
-                Removing courses may affect associated lessons and student progress
+                Removing courses may affect associated lessons and student
+                progress
               </Text>
             </View>
 
@@ -732,7 +732,9 @@ export default function ClassDetailsScreen() {
             <ScrollView style={styles.modalContent}>
               {allAvailableCourses.map((course) => {
                 const isSelected = selectedCourseIds.has(course.id);
-                const wasOriginallyAssigned = courses.some(c => c.id === course.id);
+                const wasOriginallyAssigned = courses.some(
+                  (c) => c.id === course.id,
+                );
 
                 return (
                   <TouchableOpacity
@@ -804,7 +806,9 @@ export default function ClassDetailsScreen() {
                         style={[
                           styles.modalStatusBadge,
                           {
-                            backgroundColor: getCourseStatusColor(course.status),
+                            backgroundColor: getCourseStatusColor(
+                              course.status,
+                            ),
                           },
                         ]}
                       >

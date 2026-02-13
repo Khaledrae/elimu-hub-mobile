@@ -32,6 +32,23 @@ export interface CreateClassData {
   manager_id?: number;
 }
 
+export interface ClassLesson {
+  id: number;
+  class_id: number;
+  title: string;
+  description?: string;
+  content_type?: "text" | "video" | "document" | "mixed";
+  video_url?: string;
+  document_path?: string;
+  order: number;
+  status: string;
+  teacher?: string;
+  course?: {
+    title: string;
+  };
+  created_at?: string;
+  updated_at?: string;
+}
 class ClassService {
   async getAllClasses(): Promise<ClassModel[]> {
     try {
@@ -57,10 +74,34 @@ class ClassService {
       return [];
     }
   }
+  async getAvailableClasses(): Promise<ClassModel[]> {
+    try {
+      const response = await apiClient.get<
+        ClassModel[] | ApiResponse<ClassModel[]>
+      >("/available-classes");
+      console.log("ClassService.getAvailableClasses response:", response.data);
+
+      // Handle both response formats safely
+      if (Array.isArray(response.data)) {
+        return response.data;
+      } else if (
+        response.data &&
+        typeof response.data === "object" &&
+        "data" in response.data
+      ) {
+        const data = (response.data as ApiResponse<ClassModel[]>).data;
+        return Array.isArray(data) ? data : [];
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching classes:", error);
+      return [];
+    }
+  }
 
   async getClass(id: number): Promise<ClassModel> {
     const response = await apiClient.get<ClassModel | ApiResponse<ClassModel>>(
-      `/classes/${id}`
+      `/classes/${id}`,
     );
     console.log("Single class response:", response.data);
 
@@ -76,7 +117,7 @@ class ClassService {
   async createClass(data: CreateClassData): Promise<ClassModel> {
     const response = await apiClient.post<ClassModel | ApiResponse<ClassModel>>(
       "/classes",
-      data
+      data,
     );
     console.log("Create class response:", response.data);
 
@@ -90,11 +131,11 @@ class ClassService {
 
   async updateClass(
     id: number,
-    data: Partial<CreateClassData>
+    data: Partial<CreateClassData>,
   ): Promise<ClassModel> {
     const response = await apiClient.put<ClassModel | ApiResponse<ClassModel>>(
       `/classes/${id}`,
-      data
+      data,
     );
     console.log("Update class response:", response.data);
 
@@ -112,7 +153,7 @@ class ClassService {
 
   async getAvailableManagers(): Promise<any[]> {
     const response = await apiClient.get<any[] | ApiResponse<any[]>>(
-      "/teachers/available-managers"
+      "/teachers/available-managers",
     );
     console.log("Available managers response:", response.data);
 
@@ -137,7 +178,7 @@ class ClassService {
     }
     return { courses: [] };
   }
-/*
+  /*
 async getClassLessons(classId: number): Promise<{ class: any; lessons: Lesson[] }> {
     const response = await apiClient.get<{ class: any; lessons: Lesson[] } | ApiResponse<{ class: any; lessons: Lesson[] }>>(`/classes/${classId}/lessons`);
     

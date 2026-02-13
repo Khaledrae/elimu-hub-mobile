@@ -1,16 +1,18 @@
 // app/lesson-details.tsx
 import { Button } from "@/src/components/ui/Button";
+import UnifiedVideoPlayer from "@/src/components/ui/UnifiedVideoPlayer";
 import { colors, fontSize, fontWeight, spacing } from "@/src/constants/theme";
 import { useAuth } from "@/src/contexts/AuthContext";
 import {
-    Assessment,
-    Attempt,
-    getAssessmentByLesson,
-    getAttemptResults,
-    Question,
-    startAttempt,
-    submitAttempt,
+  Assessment,
+  Attempt,
+  getAssessmentByLesson,
+  getAttemptResults,
+  Question,
+  startAttempt,
+  submitAttempt,
 } from "@/src/services/assessmentService";
+import { ClassLesson } from "@/src/services/classService";
 import coveredLessonService from "@/src/services/coveredLessonService";
 import lessonService, { Lesson } from "@/src/services/lessonService";
 import { showError, showSuccess } from "@/src/utils/alerts";
@@ -18,16 +20,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Linking, Modal, RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Linking,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import Video from "react-native-video";
-
 interface UserAnswer {
   question_id: number;
   selected_option: "A" | "B" | "C" | "D";
@@ -52,6 +53,7 @@ export default function LessonDetailsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"content" | "quiz">("content");
   const [submitting, setSubmitting] = useState(false);
+  const [videoModalVisible, setVideoModalVisible] = useState(false);
 
   useEffect(() => {
     if (lessonId) {
@@ -140,12 +142,15 @@ export default function LessonDetailsScreen() {
     }
   };
 
-  const handleAnswerSelect = (questionId: number, option: "A" | "B" | "C" | "D") => {
+  const handleAnswerSelect = (
+    questionId: number,
+    option: "A" | "B" | "C" | "D",
+  ) => {
     setUserAnswers((prev) => {
       const existingAnswer = prev.find((a) => a.question_id === questionId);
       if (existingAnswer) {
         return prev.map((a) =>
-          a.question_id === questionId ? { ...a, selected_option: option } : a
+          a.question_id === questionId ? { ...a, selected_option: option } : a,
         );
       } else {
         return [...prev, { question_id: questionId, selected_option: option }];
@@ -161,15 +166,15 @@ export default function LessonDetailsScreen() {
       const submitResponse = await submitAttempt(
         assessment.id,
         currentAttempt.id,
-        userAnswers
+        userAnswers,
       );
-
+      console.log("Submit Response:", submitResponse);
       // Fetch results
       const resultsResponse = await getAttemptResults(
         assessment.id,
-        currentAttempt.id
+        currentAttempt.id,
       );
-
+      console.log("Results Response:", resultsResponse);
       setResults(resultsResponse);
       setQuizSubmitted(true);
 
@@ -177,12 +182,12 @@ export default function LessonDetailsScreen() {
       if (percentage >= 70) {
         showSuccess(
           "Quiz Completed",
-          `Congratulations! You scored ${percentage.toFixed(1)}% - You passed!`
+          `Congratulations! You scored ${percentage.toFixed(1)}% - You passed!`,
         );
       } else {
         showError(
           "Quiz Completed",
-          `You scored ${percentage.toFixed(1)}% - Please review and try again.`
+          `You scored ${percentage.toFixed(1)}% - Please review and try again.`,
         );
       }
     } catch (error: any) {
@@ -200,11 +205,36 @@ export default function LessonDetailsScreen() {
     setResults(null);
     setCurrentAttempt(null);
   };
+  // Update the handleNextLesson function to handle both types
+  const handleNextLesson = (nextLesson: Lesson | ClassLesson) => {
+    // Check if it's a class lesson or regular lesson
+    const lessonId = nextLesson.id;
+
+    if ("class_id" in nextLesson) {
+      // It's a ClassLesson
+      router.push({
+        pathname: "/lesson-details",
+        params: {
+          lessonId: lessonId.toString(),
+          classId: nextLesson.class_id.toString(),
+        },
+      } as any);
+    } else {
+      // It's a regular Lesson
+      router.push({
+        pathname: "/lesson-details",
+        params: {
+          lessonId: lessonId.toString(),
+          courseId: courseId.toString(),
+        },
+      } as any);
+    }
+  };
 
   const handleOpenVideo = () => {
     if (lesson?.video_url) {
       Linking.openURL(lesson.video_url).catch((err) =>
-        showError("Error", "Could not open video URL")
+        showError("Error", "Could not open video URL"),
       );
     }
   };
@@ -223,51 +253,69 @@ export default function LessonDetailsScreen() {
         return (
           <View style={styles.contentSection}>
             <Text style={styles.sectionTitle}>Video Content</Text>
-            {showVideoPlayer && lesson.video_url && (
-              <Modal
-                visible={showVideoPlayer}
-                animationType="slide"
-                onRequestClose={() => setShowVideoPlayer(false)}
-              >
-                <View style={styles.videoModal}>
-                  <TouchableOpacity
-                    style={styles.closeButton}
-                    onPress={() => setShowVideoPlayer(false)}
-                  >
-                    <Ionicons name="close" size={30} color="white" />
-                  </TouchableOpacity>
-                  <Video
-                    source={{ uri: lesson.video_url }}
-                    style={styles.videoPlayer}
-                    controls={true}
-                    resizeMode="contain"
-                    onError={(error) => console.error("Video error:", error)}
-                  />
-                </View>
-              </Modal>
-            )}
+
+            {/* Unified Video Player Modal */}
+            <UnifiedVideoPlayer
+              visible={videoModalVisible}
+              videoUrl={lesson.video_url || ""}
+              onClose={() => setVideoModalVisible(false)}
+            />
+
             {lesson.video_url ? (
               <View style={styles.mediaContainer}>
                 <TouchableOpacity
-                  onPress={() => setShowVideoPlayer(true)}
+                  onPress={() => setVideoModalVisible(true)}
                   style={styles.videoThumbnail}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons
-                    name="play-circle"
-                    size={64}
-                    color={colors.primary.yellow}
-                  />
-                  <Text style={styles.mediaText}>Play Video</Text>
+                  <View style={styles.videoThumbnailContent}>
+                    <Ionicons
+                      name="play-circle"
+                      size={64}
+                      color={colors.primary.yellow}
+                    />
+                    <Text style={styles.mediaText}>Play Video</Text>
+
+                    {/* Video Source Badge */}
+                    <View style={styles.videoSourceBadge}>
+                      <Ionicons
+                        name={
+                          lesson.video_url.includes("youtube") ||
+                          lesson.video_url.includes("youtu.be")
+                            ? "logo-youtube"
+                            : "videocam"
+                        }
+                        size={16}
+                        color="white"
+                      />
+                      <Text style={styles.videoSourceText}>
+                        {lesson.video_url.includes("youtube") ||
+                        lesson.video_url.includes("youtu.be")
+                          ? "YouTube"
+                          : "Direct Video"}
+                      </Text>
+                    </View>
+                  </View>
                 </TouchableOpacity>
               </View>
             ) : (
-              <Text style={styles.emptyText}>No video available</Text>
+              <View style={styles.emptyStateContainer}>
+                <Ionicons
+                  name="videocam-outline"
+                  size={48}
+                  color={colors.neutral.gray400}
+                />
+                <Text style={styles.emptyText}>No video available</Text>
+              </View>
             )}
+
             {lesson.content && (
-              <>
+              <View style={styles.notesSection}>
                 <Text style={styles.sectionTitle}>Additional Notes</Text>
-                <Text style={styles.textContent}>{lesson.content}</Text>
-              </>
+                <View style={styles.notesContainer}>
+                  <Text style={styles.textContent}>{lesson.content}</Text>
+                </View>
+              </View>
             )}
           </View>
         );
@@ -318,7 +366,10 @@ export default function LessonDetailsScreen() {
     }
   };
 
-  const getOptionLabel = (option: "A" | "B" | "C" | "D", question: Question): string => {
+  const getOptionLabel = (
+    option: "A" | "B" | "C" | "D",
+    question: Question,
+  ): string => {
     switch (option) {
       case "A":
         return question.option_a;
@@ -358,9 +409,7 @@ export default function LessonDetailsScreen() {
           const isSelected = userAnswer?.selected_option === option;
           const isCorrect = quizSubmitted && option === question.correct_option;
           const isIncorrect =
-            quizSubmitted &&
-            isSelected &&
-            option !== question.correct_option;
+            quizSubmitted && isSelected && option !== question.correct_option;
 
           return (
             <TouchableOpacity
@@ -371,7 +420,9 @@ export default function LessonDetailsScreen() {
                 isCorrect && styles.correctOption,
                 isIncorrect && styles.incorrectOption,
               ]}
-              onPress={() => !quizSubmitted && handleAnswerSelect(question.id, option)}
+              onPress={() =>
+                !quizSubmitted && handleAnswerSelect(question.id, option)
+              }
               disabled={quizSubmitted}
             >
               <View style={styles.optionContent}>
@@ -420,7 +471,8 @@ export default function LessonDetailsScreen() {
           <Text style={styles.noQuizText}>
             No assessment available for this lesson
           </Text>
-          {(currentUser?.role === "admin" || currentUser?.role === "teacher") && (
+          {(currentUser?.role === "admin" ||
+            currentUser?.role === "teacher") && (
             <Button
               title="Create Assessment"
               onPress={handleManageAssessment}
@@ -442,7 +494,8 @@ export default function LessonDetailsScreen() {
           />
           <Text style={styles.teacherQuizTitle}>{assessment.title}</Text>
           <Text style={styles.teacherQuizInfo}>
-            {assessment.questions?.length || 0} questions • {assessment.total_marks} marks
+            {assessment.questions?.length || 0} questions •{" "}
+            {assessment.total_marks} marks
           </Text>
           <Text style={styles.teacherQuizInfo}>
             Duration: {assessment.duration_minutes} minutes
@@ -467,7 +520,9 @@ export default function LessonDetailsScreen() {
           />
           <Text style={styles.quizTitle}>{assessment.title}</Text>
           {assessment.instructions && (
-            <Text style={styles.quizDescription}>{assessment.instructions}</Text>
+            <Text style={styles.quizDescription}>
+              {assessment.instructions}
+            </Text>
           )}
 
           <View style={styles.quizInfo}>
@@ -516,7 +571,7 @@ export default function LessonDetailsScreen() {
 
           <ScrollView style={styles.questionsContainer}>
             {assessment.questions?.map((question, index) =>
-              renderQuizQuestion(question, index)
+              renderQuizQuestion(question, index),
             )}
           </ScrollView>
 
@@ -525,9 +580,7 @@ export default function LessonDetailsScreen() {
               title={submitting ? "Submitting..." : "Submit Quiz"}
               onPress={handleSubmitQuiz}
               variant="primary"
-              disabled={
-                userAnswers.length < totalQuestions || submitting
-              }
+              disabled={userAnswers.length < totalQuestions || submitting}
             />
             {userAnswers.length < totalQuestions && (
               <Text style={styles.warningText}>
@@ -566,7 +619,7 @@ export default function LessonDetailsScreen() {
           <ScrollView style={styles.reviewContainer}>
             <Text style={styles.reviewTitle}>Review Your Answers:</Text>
             {assessment.questions?.map((question, index) =>
-              renderQuizQuestion(question, index)
+              renderQuizQuestion(question, index),
             )}
           </ScrollView>
 
@@ -580,7 +633,7 @@ export default function LessonDetailsScreen() {
           <View style={styles.resultActions}>
             <Button
               title="Next Lesson"
-              onPress={handleRetakeQuiz}
+              onPress={handleNextLesson}
               variant="primary"
             />
           </View>
@@ -734,9 +787,7 @@ export default function LessonDetailsScreen() {
             ]}
           >
             Quiz
-            {assessment && (
-              <Text style={styles.tabBadge}> •</Text>
-            )}
+            {assessment && <Text style={styles.tabBadge}> •</Text>}
           </Text>
         </TouchableOpacity>
       </View>
@@ -769,7 +820,6 @@ const getStatusColor = (status: string) => {
       return "#9E9E9E";
   }
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -912,6 +962,47 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     lineHeight: 24,
   },
+  videoThumbnail: {
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  videoThumbnailContent: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.xl,
+  },
+  videoSourceBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.6)",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 16,
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  videoSourceText: {
+    color: "white",
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.medium,
+  },
+  emptyStateContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.xl,
+    backgroundColor: colors.neutral.gray500,
+    borderRadius: 12,
+    marginBottom: spacing.lg,
+  },
+  notesSection: {
+    marginTop: spacing.lg,
+  },
+  notesContainer: {
+    backgroundColor: colors.neutral.gray500,
+    padding: spacing.lg,
+    borderRadius: 12,
+  },
   videoModal: {
     flex: 1,
     backgroundColor: "black",
@@ -926,11 +1017,6 @@ const styles = StyleSheet.create({
     top: 40,
     right: 20,
     zIndex: 10,
-  },
-  videoThumbnail: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: spacing.lg,
   },
   mediaContainer: {
     alignItems: "center",

@@ -113,8 +113,8 @@ const storage = {
 // ----------------------------------------------
 // AXIOS CLIENTS
 // ----------------------------------------------
-//const API_BASE_URL = "http://127.0.0.1:8000/api/";
-const API_BASE_URL = "https://backend-elimuhub.backedarea.co.ke/api/";
+const API_BASE_URL = "http://127.0.0.1:8000/api/";
+//const API_BASE_URL = "https://backend-elimuhub.backedarea.co.ke/api/";
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -134,7 +134,7 @@ export const publicApiClient = axios.create({
   },
   timeout: 30000,
 });
-export interface ApiResponse<T= any> {
+export interface ApiResponse<T = any> {
   data: T;
   message?: string;
   status?: string;
@@ -151,7 +151,7 @@ apiClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // --------------------------------------------------
@@ -204,7 +204,7 @@ apiClient.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default apiClient;
