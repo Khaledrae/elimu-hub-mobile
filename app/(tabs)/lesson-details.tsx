@@ -999,7 +999,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   notesContainer: {
-    backgroundColor: colors.neutral.gray500,
+    // backgroundColor: colors.neutral.gray500,
     padding: spacing.lg,
     borderRadius: 12,
   },

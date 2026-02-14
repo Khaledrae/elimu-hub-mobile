@@ -2,8 +2,9 @@
 import { Button } from "@/src/components/ui/Button";
 import { colors, fontSize, fontWeight, spacing } from "@/src/constants/theme";
 import { useAuth } from "@/src/contexts/AuthContext";
-import { User } from "@/src/services/authService";
 import courseService, { Course } from "@/src/services/courseService";
+import lessonService from "@/src/services/lessonService";
+import { User } from "@/src/services/userService";
 import { showConfirmation, showError, showSuccess } from "@/src/utils/alerts";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
@@ -106,7 +107,7 @@ export default function CoursesScreen() {
 
   const loadTeachers = async () => {
     try {
-      const teachersData = await courseService.getAvailableTeachers();
+      const teachersData = await lessonService.getAvailableTeachers();
       setTeachers(teachersData);
     } catch (error) {
       console.error("Failed to load teachers:", error);
@@ -190,7 +191,7 @@ export default function CoursesScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 

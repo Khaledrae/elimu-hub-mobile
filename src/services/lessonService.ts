@@ -1,5 +1,6 @@
 // src/services/lessonService.ts
 import apiClient from "./api";
+import { User } from "./userService";
 
 export interface Lesson {
   id: number;
@@ -189,9 +190,9 @@ class LessonService {
     }
   }
   // Get available teachers for lessons
-  async getAvailableTeachers(): Promise<Teacher[]> {
+  async getAvailableTeachers(): Promise<User[]> {
     try {
-      const response = await apiClient.get<Teacher[] | ApiResponse<Teacher[]>>(
+      const response = await apiClient.get<User[] | ApiResponse<User[]>>(
         "/teachers/available-managers",
       );
 

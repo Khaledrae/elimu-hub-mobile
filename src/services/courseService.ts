@@ -1,5 +1,5 @@
 // src/services/courseService.ts
-import apiClient, { ApiResponse } from './api';
+import apiClient, { ApiResponse } from "./api";
 
 export interface Course {
   id: number;
@@ -9,7 +9,7 @@ export interface Course {
   teacher_id?: number;
   thumbnail?: string;
   level: string;
-  status: 'active' | 'inactive' | 'draft';
+  status: "active" | "inactive" | "draft";
   created_at?: string;
   updated_at?: string;
   teacher?: {
@@ -31,19 +31,21 @@ export interface Course {
 
 // Type guard to check if response is ApiResponse
 function isApiResponse<T>(data: any): data is ApiResponse<T> {
-  return data && typeof data === 'object' && 'data' in data;
+  return data && typeof data === "object" && "data" in data;
 }
 
 // Type guard to check if data is a Course
 function isCourse(data: any): data is Course {
-  return data && typeof data === 'object' && 'id' in data && 'title' in data;
+  return data && typeof data === "object" && "id" in data && "title" in data;
 }
 
 class CourseService {
   async getAllCourses(): Promise<Course[]> {
-    const response = await apiClient.get<Course[] | ApiResponse<Course[]>>('/courses');
+    const response = await apiClient.get<Course[] | ApiResponse<Course[]>>(
+      "/courses",
+    );
     //console.log("CourseService.getAllCourses response:", response.data);
-    
+
     if (Array.isArray(response.data)) {
       return response.data;
     } else if (isApiResponse<Course[]>(response.data)) {
@@ -53,36 +55,44 @@ class CourseService {
   }
 
   async getCourse(id: number): Promise<Course> {
-    const response = await apiClient.get<Course | ApiResponse<Course>>(`/courses/${id}`);
-    
+    const response = await apiClient.get<Course | ApiResponse<Course>>(
+      `/courses/${id}`,
+    );
+
     if (isCourse(response.data)) {
       return response.data;
     } else if (isApiResponse<Course>(response.data) && response.data.data) {
       return response.data.data;
     }
-    throw new Error('Invalid response format or course not found');
+    throw new Error("Invalid response format or course not found");
   }
 
   async createCourse(data: Partial<Course>): Promise<Course> {
-    const response = await apiClient.post<Course | ApiResponse<Course>>('/courses', data);
-    
+    const response = await apiClient.post<Course | ApiResponse<Course>>(
+      "/courses",
+      data,
+    );
+
     if (isCourse(response.data)) {
       return response.data;
     } else if (isApiResponse<Course>(response.data) && response.data.data) {
       return response.data.data;
     }
-    throw new Error('Invalid response format');
+    throw new Error("Invalid response format");
   }
 
   async updateCourse(id: number, data: Partial<Course>): Promise<Course> {
-    const response = await apiClient.put<Course | ApiResponse<Course>>(`/courses/${id}`, data);
-    
+    const response = await apiClient.put<Course | ApiResponse<Course>>(
+      `/courses/${id}`,
+      data,
+    );
+
     if (isCourse(response.data)) {
       return response.data;
     } else if (isApiResponse<Course>(response.data) && response.data.data) {
       return response.data.data;
     }
-    throw new Error('Invalid response format');
+    throw new Error("Invalid response format");
   }
 
   async deleteCourse(id: number): Promise<void> {
@@ -90,8 +100,10 @@ class CourseService {
   }
 
   async getAvailableTeachers(): Promise<any[]> {
-    const response = await apiClient.get<any[] | ApiResponse<any[]>>('users?role=teacher');
-    
+    const response = await apiClient.get<any[] | ApiResponse<any[]>>(
+      "users?role=teacher",
+    );
+
     if (Array.isArray(response.data)) {
       return response.data;
     } else if (isApiResponse<any[]>(response.data)) {
@@ -100,11 +112,13 @@ class CourseService {
     return [];
   }
   // Get lessons for a course filtered by class (student view)
-async getCourseLessonsByClass (courseId: number, classId: number) {
-  const response = await apiClient.get(`/lessons/course/${courseId}/class/${classId}`);
-  return response.data;
-};
-/*
+  async getCourseLessonsByClass(courseId: number, classId: number) {
+    const response = await apiClient.get(
+      `/lessons/course/${courseId}/class/${classId}`,
+    );
+    return response.data;
+  }
+  /*
 // Get assessments for a course
 async getCourseAssessments(courseId: number){
   const response = await apiClient.get(`/assessments/course/${courseId}`);
@@ -112,8 +126,10 @@ async getCourseAssessments(courseId: number){
 };*/
 
   async getCourseClasses(courseId: number): Promise<any[]> {
-    const response = await apiClient.get<any[] | ApiResponse<any[]>>(`/courses/${courseId}/classes`);
-    
+    const response = await apiClient.get<any[] | ApiResponse<any[]>>(
+      `/courses/${courseId}/classes`,
+    );
+
     if (Array.isArray(response.data)) {
       return response.data;
     } else if (isApiResponse<any[]>(response.data)) {
@@ -121,26 +137,26 @@ async getCourseAssessments(courseId: number){
     }
     return [];
   }
- async getCoursesForClass(classId: number) {
+  async getCoursesForClass(classId: number) {
     try {
       const response = await apiClient.get(`/classes/${classId}/courses`);
-      console.log('Courses for class response:', response.data);
+      console.log("Courses for class response:", response.data);
       // The response structure is: { class: {...}, courses: [...] }
       if (response.data && response.data.courses) {
         return response.data.courses;
       }
       return [];
     } catch (error) {
-      console.error('Error fetching courses for class:', error);
+      console.error("Error fetching courses for class:", error);
       return [];
     }
   }
 
-  
-
   async getCourseLessons(courseId: number): Promise<any[]> {
-    const response = await apiClient.get<any[] | ApiResponse<any[]>>(`/courses/${courseId}/lessons`);
-    
+    const response = await apiClient.get<any[] | ApiResponse<any[]>>(
+      `/courses/${courseId}/lessons`,
+    );
+
     if (Array.isArray(response.data)) {
       return response.data;
     } else if (isApiResponse<any[]>(response.data)) {
@@ -151,18 +167,23 @@ async getCourseAssessments(courseId: number){
 
   async assignCoursesToClass(classId: number, courseIds: number[]) {
     try {
-      const response = await apiClient.post(`classes/${classId}/assign-courses`, {
-        course_ids: courseIds
-      });
+      const response = await apiClient.post(
+        `classes/${classId}/assign-courses`,
+        {
+          course_ids: courseIds,
+        },
+      );
       return response.data;
     } catch (error) {
-      console.error('Error assigning courses to class:', error);
+      console.error("Error assigning courses to class:", error);
       throw error;
     }
   }
 
   async getCourseAssessments(courseId: number): Promise<any[]> {
-    const response = await apiClient.get<any[] | ApiResponse<any[]>>(`/assessments/course/${courseId}`);
+    const response = await apiClient.get<any[] | ApiResponse<any[]>>(
+      `/assessments/course/${courseId}`,
+    );
     console.log("CourseService.getCourseAssessments response:", response);
     if (Array.isArray(response.data)) {
       return response.data;
@@ -173,8 +194,10 @@ async getCourseAssessments(courseId: number){
   }
 
   async getCoursesByLevel(level: string): Promise<Course[]> {
-    const response = await apiClient.get<Course[] | ApiResponse<Course[]>>(`/courses/level/${level}`);
-    
+    const response = await apiClient.get<Course[] | ApiResponse<Course[]>>(
+      `/courses/level/${level}`,
+    );
+
     if (Array.isArray(response.data)) {
       return response.data;
     } else if (isApiResponse<Course[]>(response.data)) {
@@ -184,8 +207,10 @@ async getCourseAssessments(courseId: number){
   }
 
   async getTeacherCourses(teacherId: number): Promise<Course[]> {
-    const response = await apiClient.get<Course[] | ApiResponse<Course[]>>(`/teachers/${teacherId}/courses`);
-    
+    const response = await apiClient.get<Course[] | ApiResponse<Course[]>>(
+      `/teachers/${teacherId}/courses`,
+    );
+
     if (Array.isArray(response.data)) {
       return response.data;
     } else if (isApiResponse<Course[]>(response.data)) {
@@ -205,7 +230,7 @@ async getCourseAssessments(courseId: number){
         const errors = error.response.data.errors;
         const firstError = Object.values(errors)[0];
         return new Error(
-          Array.isArray(firstError) ? firstError[0] : firstError
+          Array.isArray(firstError) ? firstError[0] : firstError,
         );
       }
 

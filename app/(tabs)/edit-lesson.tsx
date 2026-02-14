@@ -4,24 +4,25 @@ import { colors, fontSize, fontWeight, spacing } from "@/src/constants/theme";
 import { useAuth } from "@/src/contexts/AuthContext";
 import classService from "@/src/services/classService";
 import lessonService, {
-    CreateLessonData,
-    Lesson,
+  CreateLessonData,
+  Lesson,
 } from "@/src/services/lessonService";
+import { User } from "@/src/services/userService";
 import { showError, showSuccess } from "@/src/utils/alerts";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface Course {
@@ -36,13 +37,13 @@ interface Class {
   level_group: string;
 }
 
-interface Teacher {
-  id: number;
-  user: {
-    first_name: string;
-    last_name: string;
-  };
-}
+// interface Teacher {
+//   id: number;
+//   user: {
+//     first_name: string;
+//     last_name: string;
+//   };
+// }
 
 interface OrderOption {
   value: number;
@@ -88,7 +89,7 @@ export default function EditLessonScreen() {
   // Dropdown data
   const [courses, setCourses] = useState<Course[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [teachers, setTeachers] = useState<User[]>([]);
   const [orderOptions, setOrderOptions] = useState<OrderOption[]>([]);
   const [currentLessons, setCurrentLessons] = useState<
     Array<{ id: number; title: string; order: number }>
@@ -554,7 +555,7 @@ export default function EditLessonScreen() {
                 {teachers.map((teacher) => (
                   <Picker.Item
                     key={teacher.id}
-                    label={`${teacher.user.first_name} ${teacher.user.last_name}`}
+                    label={`${teacher.first_name} ${teacher.last_name}`}
                     value={teacher.id.toString()}
                   />
                 ))}
