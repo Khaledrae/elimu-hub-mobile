@@ -4,18 +4,18 @@ import classService, { ClassModel } from "@/src/services/classService";
 import { useRouter } from "expo-router";
 
 import UserBaseFields from "@/src/components/forms/UserBaseFields";
+import { showError, showSuccess } from "@/src/utils/alerts";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { Button } from "../../../src/components/ui/Button";
 import { Input } from "../../../src/components/ui/Input";
@@ -78,6 +78,7 @@ export default function StudentRegisterScreen() {
   const phoneRegex = /^(?:\+254|254|0)([17]\d{8})$/;
 
   const updateField = (field: string, value: string) => {
+    console.log(`Updating field ${field} with value: ${value}`);
     setFormData({ ...formData, [field]: value });
     if (errors[field]) {
       setErrors({ ...errors, [field]: "" });
@@ -86,7 +87,7 @@ export default function StudentRegisterScreen() {
 
   const handleDateChange = (event: any, date?: Date) => {
     setShowDatePicker(Platform.OS === "ios");
-    
+
     if (date) {
       setSelectedDate(date);
       const formattedDate = date.toISOString().split("T")[0]; // YYYY-MM-DD format
@@ -168,16 +169,20 @@ export default function StudentRegisterScreen() {
     setIsLoading(true);
 
     try {
-      await register({
+      var response = await register({
         ...formData,
         role: "student",
         email: formData.email.trim(),
         county: Number(formData.county),
       });
-
-      Alert.alert("Success", "Registration successful! Welcome to Elimi Hub.");
+      showSuccess(
+        "Registration Successful",
+        `You have registered in successfully ${response.user.first_name}.`,
+      );
+      // Navigation will be handled by the auth state change
+      router.replace("/(tabs)/dashboard");
     } catch (error: any) {
-      Alert.alert("Registration Failed", error.message || "An error occurred");
+      showError("Registration Failed", error.message || "An error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -206,46 +211,83 @@ export default function StudentRegisterScreen() {
             updateField={updateField}
             counties={counties}
           />
-
           {/* Date of Birth Picker */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>
               Date of Birth <Text style={styles.required}>*</Text>
             </Text>
-            <TouchableOpacity
-              style={[
-                styles.datePickerButton,
-                errors.dob && styles.inputError,
-              ]}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Ionicons
-                name="calendar-outline"
-                size={20}
-                color={formData.dob ? colors.text.primary : colors.text.secondary}
-              />
-              <Text
+
+            {Platform.OS === "web" ? (
+              // 🖥 WEB VERSION
+              <View
                 style={[
-                  styles.datePickerText,
-                  !formData.dob && styles.datePickerPlaceholder,
+                  styles.datePickerButton,
+                  errors.dob && styles.inputError,
                 ]}
               >
-                {formData.dob ? formatDateDisplay(formData.dob) : "Select date of birth"}
-              </Text>
-            </TouchableOpacity>
+                {/* <Ionicons
+                  name="calendar-outline"
+                  size={20}
+                  color={
+                    formData.dob ? colors.text.primary : colors.text.secondary
+                  }
+                /> */}
+                <input
+                  type="date"
+                  value={formData.dob || ""}
+                  onChange={(e) => updateField("dob", e.target.value)}
+                  style={{
+                    border: "none",
+                    outline: "none",
+                    background: "transparent",
+                    flex: 1,
+                  }}
+                />
+              </View>
+            ) : (
+              // 📱 MOBILE VERSION
+              <>
+                <TouchableOpacity
+                  style={[
+                    styles.datePickerButton,
+                    errors.dob && styles.inputError,
+                  ]}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Ionicons
+                    name="calendar-outline"
+                    size={20}
+                    color={
+                      formData.dob ? colors.text.primary : colors.text.secondary
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.datePickerText,
+                      !formData.dob && styles.datePickerPlaceholder,
+                    ]}
+                  >
+                    {formData.dob
+                      ? formatDateDisplay(formData.dob)
+                      : "Select date of birth"}
+                  </Text>
+                </TouchableOpacity>
+
+                {showDatePicker && DateTimePicker && (
+                  <DateTimePicker
+                    value={selectedDate || new Date()}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={handleDateChange}
+                    maximumDate={new Date()}
+                    minimumDate={new Date(1950, 0, 1)}
+                  />
+                )}
+              </>
+            )}
+
             {errors.dob && <Text style={styles.errorText}>{errors.dob}</Text>}
           </View>
-
-          {showDatePicker && (
-            <DateTimePicker
-              value={selectedDate || new Date()}
-              mode="date"
-              display={Platform.OS === "ios" ? "spinner" : "default"}
-              onChange={handleDateChange}
-              maximumDate={new Date()}
-              minimumDate={new Date(1950, 0, 1)}
-            />
-          )}
 
           {/* Gender Selection */}
           <View style={styles.inputContainer}>
@@ -384,7 +426,12 @@ export default function StudentRegisterScreen() {
             <Text style={styles.label}>
               Class <Text style={styles.required}>*</Text>
             </Text>
-            <View style={[styles.pickerContainer, errors.grade_level && styles.inputError]}>
+            <View
+              style={[
+                styles.pickerContainer,
+                errors.grade_level && styles.inputError,
+              ]}
+            >
               <Ionicons
                 name="school-outline"
                 size={20}
@@ -393,7 +440,9 @@ export default function StudentRegisterScreen() {
               />
               <Picker
                 selectedValue={formData.grade_level}
-                onValueChange={(value) => updateField("grade_level", value.toString())}
+                onValueChange={(value) =>
+                  updateField("grade_level", value.toString())
+                }
                 style={styles.picker}
               >
                 <Picker.Item label="Select your class" value="" />
@@ -475,9 +524,7 @@ export default function StudentRegisterScreen() {
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
               >
                 <Ionicons
-                  name={
-                    showConfirmPassword ? "eye-off-outline" : "eye-outline"
-                  }
+                  name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
                   size={24}
                   color={colors.text.secondary}
                 />

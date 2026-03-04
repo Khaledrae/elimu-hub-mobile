@@ -17,7 +17,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (data: LoginData) => Promise<any>;
-  register: (data: RegisterData) => Promise<void>;
+  register: (data: RegisterData) => Promise<any>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       const authenticated = await authService.isAuthenticated();
-      
+
       if (authenticated) {
         // Get user from storage (already updated by isAuthenticated)
         const currentUser = await authService.getCurrentUser();
@@ -71,10 +71,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsAuthenticated(false);
       }
     } catch (error) {
-      console.error('Auth check error:', error);
+      console.error("Auth check error:", error);
       setUser(null);
       setIsAuthenticated(false);
-      
+
       // Clear any stale data
       await authService.clearAuthData();
     } finally {
@@ -98,6 +98,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await authService.register(data);
       setUser(response.user);
       setIsAuthenticated(true);
+      return response;
     } catch (error) {
       throw error;
     }

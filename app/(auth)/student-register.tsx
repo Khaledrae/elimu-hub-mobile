@@ -1,6 +1,6 @@
 // src/screens/auth/StudentRegisterScreen.tsx
 import authService from "@/src/services/authService";
-import { Picker } from '@react-native-picker/picker';
+import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
 
 import React, { useEffect, useState } from "react";
@@ -61,6 +61,7 @@ export default function StudentRegisterScreen() {
   const phoneRegex = /^(?:\+254|254|0)([17]\d{8})$/;
 
   const updateField = (field: string, value: string) => {
+    console.log(`Updating field ${field} with value: ${value}`);
     setFormData({ ...formData, [field]: value });
     if (errors[field]) {
       setErrors({ ...errors, [field]: "" });
@@ -196,16 +197,19 @@ export default function StudentRegisterScreen() {
             keyboardType="phone-pad"
             leftIcon="call-outline"
           />
-
-          <Input
-            label="Date of Birth"
-            placeholder="DD/MM/YYYY"
-            value={formData.dob}
-            onChangeText={(text) => updateField("dob", text)}
-            error={errors.dob}
-            leftIcon="calendar-outline"
-          />
-
+          {(() => {
+            console.log("Rendering First Name Input");
+            return (
+              <Input
+                label="Date of Birth"
+                placeholder="DD/MM/YYYY"
+                value={formData.dob}
+                onChangeText={(text) => updateField("dob", text)}
+                error={errors.dob}
+                leftIcon="calendar-outline"
+              />
+            );
+          })()}
           <Input
             label="Gender"
             placeholder="Male/Female/Other"
