@@ -1,7 +1,9 @@
 // app/(tabs)/courses.tsx
 import { Button } from "@/src/components/ui/Button";
+import PremiumUpgradeModal from "@/src/components/ui/PremiumUpgradeModal";
 import { colors, fontSize, fontWeight, spacing } from "@/src/constants/theme";
 import { useAuth } from "@/src/contexts/AuthContext";
+import classService from "@/src/services/classService";
 import courseService, { Course } from "@/src/services/courseService";
 import lessonService from "@/src/services/lessonService";
 import { User } from "@/src/services/userService";
@@ -34,11 +36,14 @@ export default function CoursesScreen() {
   const router = useRouter();
   const { user, logout, isLoading } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [teachers, setTeachers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const canManageLesson = user?.role === "admin" || user?.role === "teacher";
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -46,6 +51,9 @@ export default function CoursesScreen() {
     level: "",
     status: "active",
   });
+  const canFilter = user?.role !== "student" || user?.is_premium;
+  const isPremium = user?.is_premium;
+  const userRole = user?.role;
 
   // Level options
   const levels = [
@@ -67,9 +75,18 @@ export default function CoursesScreen() {
     if (!isLoading && user) {
       loadCourses();
       loadTeachers();
+      loadClasses();
     }
   }, [isLoading, user]);
-
+  useEffect(() => {
+    if (selectedClassId) {
+      loadCourses();
+    }
+  }, [selectedClassId]);
+  const loadClasses = async () => {
+    const data = await classService.getAllClasses();
+    setClasses(data);
+  };
   const loadCourses = async () => {
     try {
       setLoading(true);
@@ -79,17 +96,21 @@ export default function CoursesScreen() {
       //console.log("User role:", user?.role);
       if (user?.role === "student") {
         const gradeLevelId = user.student_profile?.grade_level_id;
-        //console.log("Student grade level ID:", gradeLevelId);
-        if (gradeLevelId) {
+        const classToLoad = selectedClassId ?? gradeLevelId;
+
+        if (classToLoad) {
           // Get courses only for student's class
-          coursesData = await courseService.getCoursesForClass(gradeLevelId);
+          coursesData = await courseService.getCoursesForClass(classToLoad);
         } else {
           // Fallback if no grade level
           coursesData = await courseService.getAllCourses();
         }
       } else if (user?.role === "admin" || user?.role === "teacher") {
-        // Admins and teachers see all courses
-        coursesData = await courseService.getAllCourses();
+        if (selectedClassId) {
+          coursesData = await courseService.getCoursesForClass(selectedClassId);
+        } else {
+          coursesData = []; // or show message "Select class"
+        }
       } else if (user?.role === "parent") {
         // Parents see courses for their children
         // Implement getCoursesForChildren() or similar method
@@ -247,16 +268,52 @@ export default function CoursesScreen() {
           </TouchableOpacity>
           <Text style={styles.title}>Courses Management</Text>
         </View>
-
-        <Button
-          title="Add Course"
-          onPress={() => setModalVisible(true)}
-          leftIcon="add-outline"
-          size="small"
-          variant="secondary"
-        />
+        {user?.role === "admin" && (
+          <Button
+            title="Add Course"
+            onPress={() => setModalVisible(true)}
+            leftIcon="add-outline"
+            size="small"
+            variant="secondary"
+          />
+        )}
       </View>
-
+      {!isPremium && user?.role === "student" && (
+        <TouchableOpacity
+          style={styles.premiumBanner}
+          onPress={() => setShowUpgradeModal(true)}
+        >
+          <Ionicons name="star" size={20} color="#FFD700" />
+          <Text style={styles.premiumText}>
+            Upgrade to Premium for unlimited access & cross-grade learning!
+          </Text>
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={colors.neutral.white}
+          />
+        </TouchableOpacity>
+      )}
+      <PremiumUpgradeModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
+      {canFilter && (
+        <View style={{ padding: spacing.md }}>
+          <Text style={{ marginBottom: 5 }}>Filter by Class</Text>
+          <Picker
+            selectedValue={selectedClassId}
+            onValueChange={(value) => {
+              setSelectedClassId(value);
+            }}
+          >
+            <Picker.Item label="Select class..." value={null} />
+            {classes.map((cls) => (
+              <Picker.Item key={cls.id} label={cls.name} value={cls.id} />
+            ))}
+          </Picker>
+        </View>
+      )}
       {/* Courses List */}
       <ScrollView style={styles.listContainer}>
         {loading ? (
@@ -710,5 +767,56 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     marginTop: spacing.lg,
     gap: spacing.md,
+  },
+
+  premiumBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "linear-gradient(135deg, #FFD700 0%, #FFC107 100%)",
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    shadowColor: "#FFD700",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: "#FFC107",
+  },
+  premiumText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2c3e50",
+    marginLeft: 12,
+    marginRight: 8,
+    lineHeight: 18,
+  },
+  premiumActiveBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)",
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    shadowColor: "#4CAF50",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: "#388E3C",
+  },
+  premiumActiveText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#fff",
+    marginLeft: 12,
+    marginRight: 8,
+    lineHeight: 18,
   },
 });

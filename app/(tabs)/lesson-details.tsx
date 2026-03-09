@@ -12,7 +12,6 @@ import {
   startAttempt,
   submitAttempt,
 } from "@/src/services/assessmentService";
-import { ClassLesson } from "@/src/services/classService";
 import coveredLessonService from "@/src/services/coveredLessonService";
 import lessonService, { Lesson } from "@/src/services/lessonService";
 import { showError, showSuccess } from "@/src/utils/alerts";
@@ -41,8 +40,9 @@ export default function LessonDetailsScreen() {
   const lessonId = parseInt(params.lessonId as string);
   const courseId = parseInt(params.courseId as string);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
-
   const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [nextLesson, setNextLesson] = useState<Lesson | null>(null);
+  const [previousLesson, setPreviousLesson] = useState<Lesson | null>(null);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [currentAttempt, setCurrentAttempt] = useState<Attempt | null>(null);
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
@@ -65,8 +65,10 @@ export default function LessonDetailsScreen() {
     try {
       setLoading(true);
       const lessonResponse = await lessonService.getLesson(lessonId);
-      setLesson(lessonResponse);
-
+      setLesson(lessonResponse.lesson);
+      setNextLesson(lessonResponse.next_lesson || null);
+      setPreviousLesson(lessonResponse.previous_lesson || null);
+      console.log("Loaded lesson details now:", lessonResponse);
       if (currentUser?.role === "student") {
         try {
           await coveredLessonService.startLesson(lessonId, currentUser.id);
@@ -205,32 +207,30 @@ export default function LessonDetailsScreen() {
     setResults(null);
     setCurrentAttempt(null);
   };
+
   // Update the handleNextLesson function to handle both types
-  const handleNextLesson = (nextLesson: Lesson | ClassLesson) => {
-    // Check if it's a class lesson or regular lesson
-    const lessonId = nextLesson.id;
+  const handleNextLesson = () => {
+    if (!nextLesson) return;
 
-    if ("class_id" in nextLesson) {
-      // It's a ClassLesson
-      router.push({
-        pathname: "/lesson-details",
-        params: {
-          lessonId: lessonId.toString(),
-          classId: nextLesson.class_id.toString(),
-        },
-      } as any);
-    } else {
-      // It's a regular Lesson
-      router.push({
-        pathname: "/lesson-details",
-        params: {
-          lessonId: lessonId.toString(),
-          courseId: courseId.toString(),
-        },
-      } as any);
-    }
+    router.push({
+      pathname: "/lesson-details",
+      params: {
+        lessonId: nextLesson.id.toString(),
+        courseId: courseId.toString(),
+      },
+    } as any);
   };
+  const handlePreviousLesson = () => {
+    if (!previousLesson) return;
 
+    router.push({
+      pathname: "/lesson-details",
+      params: {
+        lessonId: previousLesson.id.toString(),
+        courseId: courseId.toString(),
+      },
+    } as any);
+  };
   const handleOpenVideo = () => {
     if (lesson?.video_url) {
       Linking.openURL(lesson.video_url).catch((err) =>
@@ -631,11 +631,21 @@ export default function LessonDetailsScreen() {
             />
           </View>
           <View style={styles.resultActions}>
-            <Button
-              title="Next Lesson"
-              onPress={handleNextLesson}
-              variant="primary"
-            />
+            {previousLesson && (
+              <Button
+                title="Previous Lesson"
+                onPress={handlePreviousLesson}
+                variant="secondary"
+              />
+            )}
+
+            {nextLesson && (
+              <Button
+                title="Next Lesson"
+                onPress={handleNextLesson}
+                variant="primary"
+              />
+            )}
           </View>
         </View>
       );

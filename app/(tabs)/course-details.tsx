@@ -1,5 +1,6 @@
 // app/course-details.tsx
 import { Button } from "@/src/components/ui/Button";
+import PremiumUpgradeModal from "@/src/components/ui/PremiumUpgradeModal";
 import { colors, fontSize, fontWeight, spacing } from "@/src/constants/theme";
 import { useAuth } from "@/src/contexts/AuthContext";
 import courseService, { Course } from "@/src/services/courseService";
@@ -10,20 +11,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 // TODO: Replace with actual premium status from backend
 const IS_PREMIUM = false; // Temporary variable
-const DAILY_LESSON_LIMIT = 3;
+const DAILY_LESSON_LIMIT = Number(process.env.EXPO_PUBLIC_DAILY_LESSON_LIMIT);
 
 interface CourseClass {
   id: number;
@@ -68,13 +69,14 @@ export default function CourseDetailsScreen() {
   const { user: currentUser } = useAuth();
   const params = useLocalSearchParams();
   const courseId = parseInt(params.courseId as string);
-
   const [course, setCourse] = useState<Course | null>(null);
   const [classes, setClasses] = useState<CourseClass[]>([]);
   const [lessons, setLessons] = useState<CourseLesson[]>([]);
   const [coveredLessons, setCoveredLessons] = useState<CoveredLesson[]>([]);
+  //const [todaysCount, setTodaysCount] = useState(0);
   const [assessments, setAssessments] = useState<CourseAssessment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "overview" | "lessons" | "assessments" | "classes"
@@ -91,17 +93,22 @@ export default function CourseDetailsScreen() {
     if (courseId) {
       loadCourseDetails();
     }
-  }, [courseId, selectedClass]);
+  }, [
+    courseId,
+    selectedClass,
+    isPremium,
+    currentUser?.id,
+    currentUser?.student_profile?.grade_level_id,
+  ]);
 
   const loadCourseDetails = async () => {
     try {
       setLoading(true);
       const courseResponse = await courseService.getCourse(courseId);
+      console.log("Course details response:", courseResponse);
       setCourse(courseResponse);
-
-      // Load classes
-      const classesResponse = await courseService.getCourseClasses(courseId);
-      setClasses(classesResponse || []);
+      const classesResponse = courseResponse.classes || [];
+      setClasses(classesResponse);
 
       // Set selected class to student's class or first available
       if (isStudent && currentUser.student_profile?.grade_level_id) {
@@ -134,14 +141,11 @@ export default function CourseDetailsScreen() {
             courseId,
           );
         setCoveredLessons(coveredResponse.data || []);
-
-        // Count today's accessed lessons
-        const today = new Date().toDateString();
-        const todayCount = coveredResponse.data.filter((cl: CoveredLesson) => {
-          const startedDate = new Date(cl.started_at).toDateString();
-          return startedDate === today;
-        }).length;
-        setTodayAccessedCount(todayCount);
+        const coveredToday = await coveredLessonService.getLessonsCoveredToday(
+          currentUser.id,
+        );
+        console.log("Lessons covered today:", coveredToday);
+        setTodayAccessedCount(coveredToday.today_count);
       }
       setLessons(lessonsResponse || []);
 
@@ -585,11 +589,11 @@ export default function CourseDetailsScreen() {
         {isStudent && !isPremium && (
           <TouchableOpacity
             style={styles.premiumBanner}
-            onPress={handleUpgradeToPremium}
+            onPress={() => setShowUpgradeModal(true)}
           >
             <Ionicons name="star" size={20} color="#FFD700" />
             <Text style={styles.premiumText}>
-              Upgrade to Premium for unlimited lesson access!
+              Upgrade to Premium for unlimited access & cross-grade learning!
             </Text>
             <Ionicons
               name="chevron-forward"
@@ -598,7 +602,10 @@ export default function CourseDetailsScreen() {
             />
           </TouchableOpacity>
         )}
-
+        <PremiumUpgradeModal
+          visible={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+        />
         {/* Course Progress (Students Only) */}
         {isStudent && (
           <View style={styles.progressContainer}>
@@ -1041,15 +1048,52 @@ const styles = StyleSheet.create({
   premiumBanner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#9C27B0",
-    padding: spacing.md,
-    gap: spacing.sm,
+    backgroundColor: "linear-gradient(135deg, #FFD700 0%, #FFC107 100%)",
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    shadowColor: "#FFD700",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: "#FFC107",
   },
   premiumText: {
     flex: 1,
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
-    color: colors.neutral.white,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2c3e50",
+    marginLeft: 12,
+    marginRight: 8,
+    lineHeight: 18,
+  },
+  premiumActiveBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)",
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    shadowColor: "#4CAF50",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: "#388E3C",
+  },
+  premiumActiveText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#fff",
+    marginLeft: 12,
+    marginRight: 8,
+    lineHeight: 18,
   },
   progressContainer: {
     backgroundColor: colors.neutral.white,

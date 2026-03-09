@@ -2,6 +2,11 @@
 import apiClient from "./api";
 import { User } from "./userService";
 
+export interface LessonPack {
+  lesson: Lesson;
+  next_lesson?: Lesson | null;
+  previous_lesson?: Lesson | null;
+}
 export interface Lesson {
   id: number;
   course_id: number;
@@ -109,13 +114,13 @@ class LessonService {
     );
     return response.data;
   }
-  async getLesson(id: number): Promise<Lesson> {
+  async getLesson(id: number): Promise<LessonPack> {
     try {
-      const response = await apiClient.get<Lesson | ApiResponse<Lesson>>(
-        `/lessons/${id}`,
-      );
+      const response = await apiClient.get<
+        LessonPack | ApiResponse<LessonPack>
+      >(`/lessons/${id}`);
 
-      if (response.data && "id" in response.data) {
+      if (response.data && "lesson" in response.data) {
         return response.data;
       } else if (
         response.data &&

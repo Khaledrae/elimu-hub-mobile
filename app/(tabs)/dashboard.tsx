@@ -110,7 +110,7 @@ export default function DashboardScreen() {
 
   const [studentCourses, setStudentCourses] = useState<StudentCourse[]>([]);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>(
-    []
+    [],
   );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -240,9 +240,8 @@ export default function DashboardScreen() {
         let totalCourses = 0;
         let progressPercentage = 0;
         try {
-          const overallProgress = await coveredLessonService.getOverallProgress(
-            studentId
-          );
+          const overallProgress =
+            await coveredLessonService.getOverallProgress(studentId);
 
           console.log("Overall Progress:", overallProgress);
 
@@ -266,7 +265,7 @@ export default function DashboardScreen() {
           .catch(() => []);
 
         // Calculate progress
-       /*
+        /*
         const progressPercentage =
           totalLessons > 0
             ? Math.round((completedLessons / totalLessons) * 100)
@@ -295,7 +294,7 @@ export default function DashboardScreen() {
               const courseProgress =
                 await coveredLessonService.getProgressForCourse(
                   course.id,
-                  studentId
+                  studentId,
                 );
               progress = courseProgress.progress.percentage;
             } catch (e) {
@@ -309,7 +308,7 @@ export default function DashboardScreen() {
               teacher: course.teacher || { id: 0, user: { name: "Teacher" } },
               progress,
             };
-          })
+          }),
         );
 
         setStudentCourses(formattedCourses.slice(0, 3));
@@ -436,7 +435,7 @@ export default function DashboardScreen() {
           icon: "book-outline",
           color: colors.status.warning,
           onPress: () => router.push("/lessons"),
-        }
+        },
       );
     } else if (userRole === "teacher") {
       cards.push(
@@ -467,7 +466,7 @@ export default function DashboardScreen() {
           icon: "people-outline",
           color: colors.primary.yellow,
           onPress: () => router.push("/students"),
-        }
+        },
       );
     } else if (userRole === "student") {
       cards.push(
@@ -498,7 +497,7 @@ export default function DashboardScreen() {
           icon: "document-text-outline",
           color: colors.primary.red,
           onPress: () => router.push("/assignments"),
-        }
+        },
       );
     } else if (userRole === "parent") {
       cards.push(
@@ -529,7 +528,7 @@ export default function DashboardScreen() {
           icon: "trending-up-outline",
           color: colors.primary.yellow,
           onPress: () => router.push("/progress"),
-        }
+        },
       );
     }
 
@@ -646,7 +645,7 @@ export default function DashboardScreen() {
     ];
 
     return baseItems.filter(
-      (item) => !item.roles || item.roles.includes(user?.role || "")
+      (item) => !item.roles || item.roles.includes(user?.role || ""),
     );
   };
 
@@ -666,7 +665,7 @@ export default function DashboardScreen() {
         {
           title: "Assignments",
           icon: "document-text-outline",
-          color: colors.primary.red,
+          color: colors.neutral.gray600,
           route: "/assignments/pending",
         },
         {
@@ -680,7 +679,7 @@ export default function DashboardScreen() {
           icon: "calendar-outline",
           color: colors.status.info,
           route: "/calendar",
-        }
+        },
       );
     } else if (userRole === "teacher") {
       actions.push(
@@ -707,7 +706,7 @@ export default function DashboardScreen() {
           icon: "stats-chart-outline",
           color: colors.primary.red,
           route: "/reports",
-        }
+        },
       );
     } else if (userRole === "admin") {
       actions.push(
@@ -734,7 +733,7 @@ export default function DashboardScreen() {
           icon: "document-text-outline",
           color: colors.primary.red,
           route: "/reports",
-        }
+        },
       );
     }
 
@@ -832,25 +831,25 @@ export default function DashboardScreen() {
       );
     }
 */
-    return (
-      <>
-        <TouchableOpacity
-          style={styles.premiumBanner}
-          onPress={() => setShowUpgradeModal(true)}
-        >
-          <Ionicons name="star-outline" size={20} color="#FFD700" />
-          <Text style={styles.premiumText}>
-            Upgrade to Premium for unlimited access & cross-grade learning!
-          </Text>
-          <Ionicons name="chevron-forward" size={20} color="#fff" />
-        </TouchableOpacity>
+    // return (
+    //   <>
+    //     <TouchableOpacity
+    //       style={styles.premiumBanner}
+    //       onPress={() => setShowUpgradeModal(true)}
+    //     >
+    //       <Ionicons name="star-outline" size={20} color="#FFD700" />
+    //       <Text style={styles.premiumText}>
+    //         Upgrade to Premium for unlimited access & cross-grade learning!
+    //       </Text>
+    //       <Ionicons name="chevron-forward" size={20} color="#fff" />
+    //     </TouchableOpacity>
 
-        <PremiumUpgradeModal
-          visible={showUpgradeModal}
-          onClose={() => setShowUpgradeModal(false)}
-        />
-      </>
-    );
+    //     <PremiumUpgradeModal
+    //       visible={showUpgradeModal}
+    //       onClose={() => setShowUpgradeModal(false)}
+    //     />
+    //   </>
+    // );
   };
   const renderRoleSpecificContent = () => {
     const userRole = user?.role;

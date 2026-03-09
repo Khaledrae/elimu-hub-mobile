@@ -129,7 +129,7 @@ async getCourseAssessments(courseId: number){
     const response = await apiClient.get<any[] | ApiResponse<any[]>>(
       `/courses/${courseId}/classes`,
     );
-
+    console.log("CourseService.getCourseClasses response:", response.data);
     if (Array.isArray(response.data)) {
       return response.data;
     } else if (isApiResponse<any[]>(response.data)) {
